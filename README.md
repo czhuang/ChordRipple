@@ -39,10 +39,12 @@ Some other libraries used:
 REFERENCES
 ==========
 This app uses annotated data from 
+
 De Clercq, Trevor, and David Temperley. "A corpus analysis of rock harmony." Popular Music 30.01 (2011): 47-70.
 
 
 The model is based on
+
 Mikolov, T., Sutskever, I., Chen, K., Corrado, G., & Dean, J. (2013).  Distributed Representations of Words and Phrases and their Compositionality. Advances in Neural Information Processing Systems, 26, 3111–3119.
 
 
