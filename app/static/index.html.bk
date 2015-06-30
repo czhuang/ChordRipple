@@ -8,27 +8,29 @@
       }
     </style>
     <script type="text/javascript"
-src="js/d3.js"></script>
+src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.3/d3.js"></script>
 
-    <script src="js/libs/jquery-1.11.2.min.js"></script>
-    <script src="js/libs/jquery-migrate-1.2.1.min.js"></script>
+    <script src="//code.jquery.com/jquery-1.11.2.min.js"></script>
+    <script src="//code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
 
- <link rel="stylesheet" href="js/libs/bootstrap.css"></link>
- <link rel="stylesheet" href="js/libs/bootstrap-theme.css"></link>
+ <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.2/css/bootstrap.min.css"></link>
 
-    <script type="text/javascript" src="js/libs/jquery-ui.js"></script>
-    <link rel="stylesheet" href="js/libs/jquery-ui.css"></link>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.2/jquery-ui.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.2/jquery-ui.css"></link>
   
     <script type="text/javascript"
-    src="js/libs/bootstrap.js"></script>
+    src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.2/js/bootstrap.min.js"></script>
 
     <script type="text/javascript"
-    src="js/libs/angular.js"></script>
+    src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.2/js/bootstrap.js"></script>
+
+    <script type="text/javascript"
+    src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular.min.js"></script>
 
  <script src="js/UI/jquery.caret.1.02.min.js"></script>
 
     <script type="text/javascript"
-src="js/libs/underscore-min.js"></script>
+src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.7.0/underscore-min.js"></script>
 
     <script src="js/utility/diff.js"></script>
 

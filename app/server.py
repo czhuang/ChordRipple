@@ -20,13 +20,14 @@ def run_socketio(path):
 
 
 if __name__ == '__main__':
-    port_num = 8080
+    port_num = 8088
     print 'Listening on http://localhost:%d' % port_num
     app.debug = True
     import os
     from werkzeug.wsgi import SharedDataMiddleware
     app = SharedDataMiddleware(app,
-        {'/': os.path.join(os.path.dirname(__file__), 'static')})
+                               {'/': os.path.join(os.path.dirname(__file__),
+                                                  'static')})
     from socketio.server import SocketIOServer
     SocketIOServer(('0.0.0.0', port_num), app,
-        resource="socket.io", policy_server=False).serve_forever()
+                   resource="socket.io", policy_server=False).serve_forever()

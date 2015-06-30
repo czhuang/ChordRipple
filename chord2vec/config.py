@@ -46,7 +46,7 @@ def get_configs():
 
     configs = Configs(layer1_sz, random_scale, regularize)
 
-    configs['retrieve_model'] = False
+    configs['retrieve_model'] = True
 
     configs['min_count'] = 1
     # configs['min_count'] = 20
