@@ -4,7 +4,11 @@ This web app is a search-box like interface for writing chord progressions.  Jus
 
 On a non-snowy day, you might be able to try it out at:
 	
-	https://chordripple.iis-dev.seas.harvard.edu
+    http://chordripplestudy.iis-dev.seas.harvard.edu/
+
+Earlier version (allows any number of chords):
+
+    https://chordripple.iis-dev.seas.harvard.edu
 
 
 INSTALLATION
