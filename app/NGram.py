@@ -78,19 +78,17 @@ class NGram(object):
             print 'WARNING: %s-gram not yet implemented' % n
         return ngram, ngram_counts
 
-    @staticmethod
-    def make_start_probs(seqs, syms):
+    def make_start_probs(self, seqs, syms):
         counts = np.zeros((len(syms),))
         # TODO: fix hacky smoothing
         counts += 0.01
         for seq in seqs:
             if seq[0] in syms:
-                ind = syms.index(seq[0])
+                ind = self.get_idx(seq[0])
                 counts[ind] += 1
         counts /= np.sum(counts)
         return counts
 
-    @staticmethod
     def score(self, seqs, top_n=1):
         scores = []
         posts = []
@@ -98,7 +96,7 @@ class NGram(object):
             local_score = np.zeros((len(seq)))
             local_posts = np.zeros((len(seq)))
             if seq[0] in self.syms:
-                ind = self.syms.index(seq[0])
+                ind = self.get_idx(seq[0])
                 predicted_ind = np.argmax(self.start_probs)
                 local_score[0] = predicted_ind == ind
                 local_posts[0] = self.start_probs[predicted_ind]
@@ -108,8 +106,8 @@ class NGram(object):
             for i in range(1, len(seq)):
                 if seq[i-1] not in self.syms or seq[i] not in self.syms:
                     continue
-                ind_previous = self.syms.index(seq[i-1])
-                ind = self.syms.index(seq[i])
+                ind_previous = self.get_idx(seq[i-1])
+                ind = self.get_idx(seq[i])
                 predicted_inds = np.argsort(-self.ngram[ind_previous, :])[:top_n]
                 local_score[i] = ind in predicted_inds
                 local_posts[i] = self.ngram[ind_previous, ind]
@@ -131,20 +129,68 @@ class NGram(object):
         second_scores = [score[1] for score in scores]
         print 'second score: %.3f' % np.mean(second_scores)
 
-        posts_total = np.sum([np.sum(post) for post in posts])
-        print 'likelihood (posterior probs): %.3f' % posts_total
-        return posts_total, mean_score_total
+        log_lik = np.sum([np.sum(np.log(post)) for post in posts])
+        print 'log likelihood: %.3f' % log_lik
+        N = np.sum([len(post) for post in posts])
+        cross_entropy = - log_lik / N
+        print 'N:', N
+        print 'cross_entropy (likelihood/N): %.3f' % cross_entropy
+        return log_lik
 
-    @staticmethod
+    def next_top_n(self, sym, top_n=7):
+        ind = self.get_idx(sym)
+        if ind is None:
+            return None
+        next_inds = np.argsort(-self.ngram[ind, :])[:top_n]
+        next_syms = [self.syms[ind] for ind in next_inds]
+        print 'ngram next', sym, ':', next_syms
+        return next_syms
+
+    def get_idx(self, sym):
+        if sym in self.syms:
+            return self.syms.index(sym)
+        else:
+            return None
+
+    def unigram_inverse_freq(self, sym):
+        idx = self.get_idx(sym)
+        if idx is None:
+            return
+        # print 'all', np.sum(self.unigram)
+        # print 'sym: ', sym, self.unigram_counts[idx]
+        print 'total counts', np.sum(self.unigram)
+        inverse_count = np.sum(self.unigram) / self.unigram_counts[idx]
+        return inverse_count
+
+    def log_likelihood(self, seq):
+        # returns the log likelihood of a sequence
+        idx_pre = self.get_idx(seq[0])
+        if len(seq) == 1:
+            if idx_pre is None:
+                return None
+        
+        if idx_pre is None:
+            joint = 1
+        else:
+            joint = np.log(self.start_probs[idx_pre])
+        for sym in seq[1:]:
+            idx = self.get_idx(sym)
+            if idx_pre is None or idx is None:
+                idx_pre = idx
+                continue
+            joint += np.log(self.trans[idx_pre, idx])
+            idx_pre = idx
+        return joint
+
     def predict(self, seq, log=True, return_all=False):
-        ind = self.syms.index(seq[0])
+        ind = self.get_idx(seq[0])
         probs = [self.start_probs[ind]]
         probs_all = [self.start_probs]
         for i in range(1, len(seq)):
             if seq[i-1] in self.syms and seq[i] in self.syms:
-                ind = self.syms.index(seq[i-1])
+                ind = self.get_idx(seq[i-1])
 
-                ind_next = self.syms.index(seq[i])
+                ind_next = self.get_idx(seq[i])
                 probs.append(self.ngram[ind, ind_next])
 
                 probs_all.append(self.ngram[ind, :])
@@ -169,7 +215,7 @@ class NGram(object):
         elif seq_len < m:
             assert False, 'ERROR: Not yet implemented'
         else:
-            ind = self.syms.index(seq[-m])
+            ind = self.get_idx(seq[-m])
         sym = self.sample_multinomial(self.ngram[ind, :])
         if not return_chord:
             return sym
@@ -182,6 +228,11 @@ class NGram(object):
             return sym
         else:
             return sym2chord(sym)
+
+    def get_top_start_chords(self, topn):
+        inds = np.argsort(-self.start_probs)
+        syms = [self.syms[i] for i in inds[:topn]]
+        return syms
 
     def gen_seq(self, n, return_chord=False):
         # returns chords not sym labels
@@ -249,3 +300,4 @@ def bigram(seqs, syms, row_syms=None, forward=True):
     bigram_probs = bigram_counts / norm[:, None]
     assert np.allclose(np.sum(bigram_probs, axis=1), np.ones((len(row_syms))))
     return bigram_probs, bigram_counts
+

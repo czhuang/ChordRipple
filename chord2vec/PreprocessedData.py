@@ -16,9 +16,18 @@ class RawData(object):
 class PreprocessedData(object):
     def __init__(self, seqs, syms, window, seq_processed=None):
         self.seqs = seqs
+        self.syms = syms
+
+        # add ending symbol
+        if syms[-1] != '':
+            for seq in seqs:
+                seq.append('')
+            syms.append('')
+
         from load_songs_tools import get_segmented_songs
         self.subseqs = get_segmented_songs(seqs)
-        self.syms = syms
+
+
         self.window = window
         if seq_processed is not None:
             self.seqs_processed = seq_processed

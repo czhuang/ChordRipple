@@ -39,9 +39,9 @@ class Configs(dict):
         return timestamp
 
 
-def get_configs():
+def get_configs(print_config=True):
     random_scale = 1.0
-    layer1_sz = 20  #2
+    layer1_sz = 5  #2
     regularize = False
 
     configs = Configs(layer1_sz, random_scale, regularize)
@@ -94,6 +94,7 @@ def get_configs():
     # not yet implemented in this version
     configs['duplicate_by_rotate'] = False
 
-    print configs.name
+    if print_config:
+        print configs.name
 
     return configs

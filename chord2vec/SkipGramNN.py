@@ -516,7 +516,8 @@ class SkipGramNN(object):
                  save=True)
         # plt.savefig('%s.pdf' % fname)
 
-    def most_similar(self, positive=[], negative=[], topn=10):
+    def most_similar(self, positive=[], negative=[], topn=10,
+                     return_scores=True):
         """
         adapted from https://github.com/piskvorky/gensim/blob/develop/gensim/models/word2vec.py
         """
@@ -555,4 +556,8 @@ class SkipGramNN(object):
         best = np.argsort(dists)[::-1][:topn + len(all_words)]
         # ignore (don't return) words from the input
         result = [(self.syms[sim], float(dists[sim])) for sim in best if sim not in all_words]
-        return result[:topn]
+        top_sims = result[:topn]
+        if return_scores:
+            return top_sims
+        else:
+            return [sim[0] for sim in top_sims]

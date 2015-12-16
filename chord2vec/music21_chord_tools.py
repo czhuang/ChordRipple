@@ -1,5 +1,5 @@
 
-from music21 import roman, stream, chord, harmony, key
+from music21 import roman, stream, chord, harmony, key, interval
 
 
 letter_ordering = ['c', 'db', 'd', 'eb', 'e', 'f', 'gb', 'g', 'ab', 'a', 'bb', 'b']
@@ -31,6 +31,80 @@ MAKE_NOTE_EXCEPTIONS = ['Vs4', 'V7s4']
 ROMAN_RELABELS = {'bVII7[maj7]': 'bVII7',
                   'It6': 'bVI7'}
 
+
+def root_interval(sym, sym_next):
+    # print sym, sym_next
+    ch = harmony.ChordSymbol(sym)
+    ch_next = harmony.ChordSymbol(sym_next)
+    ch_root = ch.findRoot()
+    ch_next_root = ch_next.findRoot()
+    intvl = interval.Interval(ch_root, ch_next_root)
+    semitones = intvl.chromatic.semitones
+    return semitones
+
+def is_fifth_root_movement_from_sym_pair(sym, sym_next):
+    semitones = root_interval(sym, sym_next)
+    # print sym, sym_next, semitones
+    if semitones == -7 or semitones == 5:  # a fifth down
+        return True
+    return False
+
+def is_fifth_root_movement(root, root_next):
+    intvl = interval.Interval(root, root_next)
+    semitones = intvl.chromatic.semitones
+    if semitones == -7 or semitones == 5:  # a fifth down
+        return True
+    return False
+
+def get_roots_and_chord_qualities(seq):
+    roots = []
+    chord_qualities = []
+    for sym in seq:
+        ch = harmony.ChordSymbol(sym)
+        roots.append(ch.findRoot())
+        if ch.isMajorTriad():
+            chord_qualities.append('M')
+        elif ch.isDominantSeventh():
+            chord_qualities.append('d')
+        else:
+            chord_qualities.append('')
+    return roots, chord_qualities
+
+
+def get_targets(seq):
+    # TODO: could use the quality of the chord to constrain this more
+    # the last chord in a subsequence that's a fifth movement is a targe
+    roots, chord_qualities = get_roots_and_chord_qualities(seq)
+    fifth_mvts_booleans = []
+    for i in range(len(seq)-1):
+        fifth = is_fifth_root_movement(roots[i], roots[i+1])
+        fifth_mvts_booleans.append(fifth)
+    targets = {}
+    if len(fifth_mvts_booleans) == 1:
+        targets[seq[-1]] = 1
+        # print targets
+        return targets
+    for i in range(len(fifth_mvts_booleans)):
+        # print seq[i], seq[i+1],
+        next_is_fifth = i < len(fifth_mvts_booleans) - 1 and \
+                        fifth_mvts_booleans[i+1]
+        last_fifth_mvt = fifth_mvts_booleans[i] and not next_is_fifth
+        could_be_V = chord_qualities[i] == 'M' or chord_qualities[i] == 'd'
+        # print last_fifth_mvt, could_be_V
+        if last_fifth_mvt and could_be_V:
+            target = seq[i+1]
+            # print target, True
+            # weighted by how many steps away from start
+            if target not in targets:
+                targets[target] = 1.0 / (i + 1)
+            else:
+                targets[target] += 1.0 / (i + 1)
+        else:
+            # just for printing debugging
+            target = seq[i+1]
+            # print target, False
+    # print targets
+    return targets
 
 def letter2music21(sym):
     return replace_flat_dash_primary(sym, 0)

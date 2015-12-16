@@ -21,6 +21,8 @@ def run_socketio(path):
 
 if __name__ == '__main__':
     port_num = 8088
+    # port_num = 8000
+    # port_num = 80
     print 'Listening on http://localhost:%d' % port_num
     app.debug = True
     import os

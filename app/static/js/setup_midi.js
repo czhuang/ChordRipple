@@ -14,7 +14,7 @@ window.onload = function () {
 	});
 };
 
-var velocity = 60;
+var velocity = 100;
 var dur = 0.45; 
 var allNotes = []
 var channel = 0

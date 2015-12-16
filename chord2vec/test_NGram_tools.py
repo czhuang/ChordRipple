@@ -56,5 +56,32 @@ def test_plot_one_gram_all():
     plt.savefig('bach_chorale-chord-dist.pdf')
 
 
+def test_next_top_n():
+    model = retrieve_NGram()
+    # 'Em9' does not exist
+    # 'Fdim' does not
+    query_sym = model.syms[0]
+    syms = model.next_top_n(query_sym)
+    print 'what are the most common symbols that follow %s' % query_sym
+    print syms
+
+
+def top_start_chords():
+    model = retrieve_NGram()
+    syms = model.get_top_start_chords(5)
+    print syms
+
+
+def test_unigram_novelty():
+    model = retrieve_NGram()
+    inv_freq = model.unigram_inverse_freq('C')
+    idx = model.get_idx('C')
+    print 'counts', model.unigram_counts[idx]
+    print inv_freq
+
+
 if __name__ == "__main__":
-    test_make_model()
+    # test_make_model()
+    # test_next_top_n()
+    # top_start_chords()
+    test_unigram_novelty()

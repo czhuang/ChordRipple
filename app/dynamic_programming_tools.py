@@ -2,21 +2,53 @@
 
 import numpy as np
 
+# WEIGHTING_BETWEEN_SIM_AND_TRANS
+WEIGHT = 1.0
+
+
+def is_list_or_tuple(v):
+    if isinstance(v, list) or isinstance(v, tuple):
+        return True
+    else:
+        return False
+
+
+def get_idx(v):
+    if is_list_or_tuple(v[1]):
+        return v[1][0]
+    else:
+        return v[1]
+
 
 def get_trans(v1, v2, trans):
-    return - np.log(trans[v1[1], v2[1]])
+    v1_idx = get_idx(v1)
+    v2_idx = get_idx(v2)
+    prob = - np.log(trans[v1_idx, v2_idx])
+    # TODO: assumes that first one is accounted for earlier
+    if is_list_or_tuple(v2[1]):
+        prob += - np.log(v2[1][1]) * WEIGHT
+    return prob
 
 
 def get_probs(v, probs):
-    return - np.log(probs[v[1]])
+    v_idx = get_idx(v)
+    prob = - np.log(probs[v_idx])
+    if is_list_or_tuple(v[1]):
+        # TODO: assumes accounting for first one
+        prob += - np.log(v[1][1]) * WEIGHT
+    return prob
 
 
-def simple_foward_backward_gap_dist(model, before_sym, after_sym):
+def simple_foward_backward_gap_dist(model, before_sym, after_sym, experiment_type=None):
     # TODO: gap size only one for now
     syms = model.syms
     trans = model.trans
     if before_sym not in syms and after_sym not in syms:
         return None, None
+    if before_sym is None and experiment_type == 0:
+        return None, None
+
+    assert np.allclose(np.sum(trans, axis=1), 1)
 
     probs = np.zeros((len(syms,)))
     if before_sym is not None:
@@ -36,30 +68,102 @@ def simple_foward_backward_gap_dist(model, before_sym, after_sym):
     return sorted_probs, sorted_syms
 
 
-def shortest_path(model, fixed, seq_ind, original_seq):
+def has_single_sym(item):
+    if isinstance(item, list) and len(item) == 1:
+        return True
+    elif isinstance(item, str) or isinstance(item, unicode):
+        return True
+    else:
+        return False
+
+
+def shortest_path(model, fixed, seq_ind=None, original_seq=None,
+                  nn=None):
+    print '--- shortest path for constructing ripple ---'
+    print fixed
+    # number of similarity matches to query on the neural net
+    NN_TOPN = 30
     syms = model.syms
     lb = np.min(fixed.keys())
     ub = np.max(fixed.keys())
 
-    if seq_ind - 1 in fixed.keys():
-        fixed[seq_ind-1] = []
-    if seq_ind + 1 in fixed.keys():
-        fixed[seq_ind+1] = []
+    if seq_ind is not None:
+        idx = seq_ind - 1
+        if idx in fixed.keys():
+            fixed[idx] = []
 
+        idx = seq_ind + 1
+        # TODO: need to check upper bound?
+        if idx in fixed.keys():
+            fixed[idx] = []
+
+    # print fixed
+    # print 'lb, ub', lb, ub
     changed_start_ind = 0
-    changed_end_ind = None
-    sym_inds = range(lb, ub+1)
+    for i in range(lb, ub+1):
+        if i in fixed and not has_single_sym(fixed[i]):
+            changed_start_ind = i
+            break
+
+    changed_end_ind = ub
+    for i in range(ub, lb-1, -1):
+        if i in fixed and not has_single_sym(fixed[i]):
+            changed_end_ind = i
+            break
+
+    #print changed_start_ind, changed_end_ind
+    # sym_inds = range(lb, ub+1)
+    sym_inds = range(changed_start_ind, changed_end_ind+1)
+    if seq_ind is not None and seq_ind not in sym_inds:
+        sym_inds.append(seq_ind)
+        sym_inds.sort()
 
     # setting up the vertices
     states = {}  # for retriving the vertices according to time step
     vertices = []  # flat list of all vertices
-    for i in range(np.min(fixed.keys()), ub+1):
+    # TODO: need to streamline, right now allows sim scores to come in and also to be generated locally
+    # for i in range(np.min(fixed.keys()), ub+1):
+    for i in range(lb, ub+1):
+        local_states = []
         if i in fixed.keys() and len(fixed[i]) > 0:
-            local_states = [(i, syms.index(fixed[i]))]
+            syms_options = fixed[i]
+            print 'syms_options', syms_options
+            if isinstance(syms_options, list):
+
+                for sym in syms_options:
+                    if isinstance(sym, tuple):
+                        local_states.append((i, (syms.index(sym[0]), sym[1])))
+                    else:
+                        local_states.append((i, syms.index(sym)))
+            else:
+                # assert if it's a tuple
+                print 'not a tuple'
+                assert not isinstance(syms_options, tuple)
+                local_states = [(i, syms.index(syms_options))]
         else:
-            local_states = [(i, j) for j in range(len(syms))]
+            if nn is None:
+                local_states = [(i, j) for j in range(len(syms))]
+            else:
+                sym = original_seq[i]
+                if sym in syms:
+                    sims_and_scores = nn.most_similar(sym, topn=NN_TOPN)
+                    for sim_score in sims_and_scores:
+                        local_states.append((i, (syms.index(sim_score[0]), sim_score[1])))
+                    # print '...populating', i, len(local_states)
+                elif len(sym) == 0:
+                    for sym in syms:
+                        local_states.append((i, syms.index(sym)))
+                else:
+                    print 'WARNING: %s not in list, not doing similarity query' % \
+                        sym
+                    local_states.append((i, syms.index(sym)))
+
         states[i] = local_states
         vertices.extend(local_states)
+
+    # print states.keys()
+    for key, values in states.iteritems():
+        print key, len(values)
 
     dists = []
     first_states = states[lb]
@@ -118,17 +222,37 @@ def shortest_path(model, fixed, seq_ind, original_seq):
         u = previous_dict[u]
     seq.insert(0, u)
 
+    #print 'seq', seq
+
     sym_seq = []
     for s in seq:
-        sym = syms[s[1]]
+        # sym = syms[s[1]]
+        sym = syms[get_idx(s)]
         sym_seq.append(sym)
-    sym_subseq = sym_seq[changed_start_ind:changed_end_ind]
 
-    assert len(sym_inds) == len(sym_subseq)
+    # start_offset = changed_start_ind - lb
+    # end_offset = changed_end_ind - ub
+    # sym_subseq = sym_seq[start_offset:end_offset]
+    sym_subseq = sym_seq
+    # print 'start_offset, end_offset', start_offset, end_offset
+    #print sym_subseq
+
+    #print len(sym_inds), len(sym_subseq)
+    # assert len(sym_inds) + start_offset - end_offset == len(sym_subseq)
 
     # make complete seq
-    if ub + 1 > len(original_seq) - 1:
+    if original_seq is None:
+        return sym_subseq, range(len(sym_subseq))
+    elif changed_end_ind + 1 > len(original_seq) - 1:
+        # new_seq = original_seq[:changed_start_ind] + sym_subseq
         new_seq = original_seq[:lb] + sym_subseq
     else:
-        new_seq = original_seq[:lb] + sym_subseq + original_seq[ub+1:]
+        # new_seq = original_seq[:changed_start_ind] + sym_subseq + \
+        #           original_seq[changed_end_ind+1:]
+        new_seq = original_seq[:lb] + sym_subseq + \
+                  original_seq[ub+1:]
+
+    # print 'original_seq', original_seq
+    # print 'new_seq', new_seq
+    # print 'sym_inds', sym_inds
     return new_seq, sym_inds
