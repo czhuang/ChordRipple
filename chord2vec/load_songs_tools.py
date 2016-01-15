@@ -16,7 +16,7 @@ def load_songs(configs):
         fname = os.path.join('data', 'bach_chorales_rn.pkl')
         if configs['use_durations']:
             fname = os.path.join('data', 'bach_chorales_rn_durs.pkl')
-        if configs['augment_data']:
+        if configs['augmented_data']:
             fname = os.path.join('data', 'bach-letters-augmented.pkl')
 
         # fname = os.path.join('data', 'bach_chorales_rn_seqintclass_durs.pkl')
@@ -36,6 +36,9 @@ def load_songs(configs):
 
     elif configs['corpus'] == 'rock' and not configs['use_letternames']:
         fname = os.path.join('data', 'rock-rns.pkl')
+
+    elif configs['corpus'] == 'rock' and configs['use_letternames'] and not configs['transposed']:
+        fname = os.path.join('data', 'rock-lettername-originalKey.pkl')
     elif configs['corpus'] == 'rock' and configs["use_letternames"]:
         fname = os.path.join('data', 'rock_letternames_fixed.pkl')
         if configs['augmented_data']:
@@ -85,7 +88,9 @@ def get_segmented_songs(seqs=None, min_len=5):
     return subseqs
 
 
-def get_raw_data(configs):
+def get_raw_data(configs=None):
+    if configs is None:
+        configs = get_configs()
     if configs['use_durations']:
         seqs, durs = load_songs(configs)
         sentences = [Seq(seqs[i], durs[i]) for i in range(len(seqs))]
@@ -166,6 +171,19 @@ def read_text(fpath):
     return seqs
 
 
+def read_seqs(fpath):
+    lines = read_text(fpath)
+    seqs = []
+    for line in lines:
+        if ', ' in line:
+            syms = line.strip().split(', ')
+        else:
+            syms = line.strip().split(' ')
+        assert ' ' not in syms
+        seqs.append(syms)
+    return seqs
+
+
 def check_train_test_texts():
     pickle_train_test_seqs()
 
@@ -195,7 +213,8 @@ def get_data(configs=None):
     if configs is None:
         configs = get_configs()
     seqs, syms = get_raw_data(configs)
-    print 'get data, # of syms', len(syms)
+    print 'get data, # of syms', len(syms), len(set(syms))
+    assert len(syms) == len(set(syms))
     window = configs["window"]
     data = PreprocessedData(seqs, syms, window)
     return data
@@ -235,6 +254,29 @@ def check_roman_vs_letters():
     print mismatches
 
 
+def test_get_raw_data():
+    seqs, syms = get_raw_data()
+    count_end_or_start_with_C = 0
+    for seq in seqs:
+        if seq[0] == 'C' or seq[-1] == 'C':
+            count_end_or_start_with_C += 1
+        else:
+            print seq[0], seq[-1]
+    print 'number of songs:', len(seqs)
+    print 'count_end_or_start_with_C:', count_end_or_start_with_C
+
+
+def convert_to_pickle(fname):
+    fpath = os.path.join('data', fname)
+    seqs = read_seqs(fpath)
+    fname_parts = fname.split('.')
+    assert len(fname_parts) == 2
+    pickle_fname = fname.split('.')[0] + '.pkl'
+    pickle_fpath = os.path.join('data', pickle_fname)
+    with open(pickle_fpath, 'wb') as p:
+        pickle.dump(seqs, p)
+
+
 if __name__ == '__main__':
     # seqs = load_songs()
     # print len(seqs)
@@ -248,4 +290,8 @@ if __name__ == '__main__':
 
     # pickle_train_test_seqs()
     # check_train_test_texts()
-    get_train_test_data()
+    # get_train_test_data()
+
+    # test_get_raw_data()
+    fname = 'rock-lettername-originalKey.txt'
+    convert_to_pickle(fname)

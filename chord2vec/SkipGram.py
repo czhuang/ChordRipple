@@ -77,39 +77,62 @@ def make_nn_funs(V_size, layer_size, skip_keys, L2_reg):
 if __name__ == '__main__':
     # Network parameters
     # layer_sizes = [784, 200, 100, 10]
-    BIGRAM = False
+    BIGRAM = True
+    USE_ALL_DATA_FOR_TRAINING = True
 
-    OPT_TYPE = 'SGD'  #'CG'
+    OPT_TYPE = 'CG'  #'SGD'  #'CG'
 
     BATCH_MODE = False  # False meanings use Stoachastic GD
                         # True means batch everything in one
-    layer_size = 20  #10  #100  #20
+    layer_size = 1  #2  #20  # 30  #20  #10  #100  #20
     window = 1  #2
 
     # Training parameters
-    L2_reg = 0.1  #0.01 (was reasonable for SGD)  #0  # 0.1
+    L2_reg = 0.01  #0.001  #0.001  #0.01 (was reasonable for SGD)  #0  # 0.1
     param_scale = 0.1
-    learning_rate = 1e-4  # 1e-3
+    learning_rate = 1e-3  # 1e-4  # 1e-3
     momentum = 0.3  # 0.3 (best so far), 0.5  # 0.9
-    # batch_size = 256
-    batch_size = 32  # 64
 
-    num_epochs = 80  #30  # 30 # 50
+    batch_size = 128
+    # batch_size = 32  #64  # 1024  # 256  # 32  # 64
+
+    # for 'SGD'
+    num_epochs = 1000  #20  #30  # 30 # 50
+
+    # for 'CG'
+    max_iter = 500
+
 
     # Load data
     from load_songs_tools import get_data
     data = get_data()
-    X = data.inputs
+    if not USE_ALL_DATA_FOR_TRAINING:
+        X = data.inputs
+        Y = data.outputs
+
+        test_data = data.get_test_data()
+        X_test = test_data.inputs
+        Y_test = test_data.outputs
+    else:
+        print('==== USING ALL DATA FOR BOTH TRAIN AND TEST ====')
+        X = data.inputs_all
+        Y = data.outputs_all
+
+        X_test = data.inputs_all
+        Y_test = data.outputs_all
+
     print('...loaded data')
     print('# of keys:', len(X.keys()))
+    print('# of datapoints for training:')
+    N = X.values()[0].shape[0]
     for key in X.keys():
-        print(X[key].shape)
-    assert len(X.keys()) == window * 2
-    Y = data.outputs
+        print(key, X[key].shape)
 
-    test_data = data.get_test_data()
-    X_test = test_data.inputs
-    Y_test = test_data.outputs
+    assert len(X.keys()) == window * 2
+
+    print('# of datapoints for testing:')
+    for key in X_test.keys():
+        print(key, X_test[key].shape)
 
     if BIGRAM:
         X = {'1': X['1']}
@@ -143,7 +166,10 @@ if __name__ == '__main__':
 
     def print_perf(epoch, W):
         train_perf = cross_entropy(W, X, Y)
-        test_perf  = cross_entropy(W, X_test, Y_test)
+        if not USE_ALL_DATA_FOR_TRAINING:
+            test_perf  = cross_entropy(W, X_test, Y_test)
+        else:
+            test_perf = train_perf
         X_test_forward = {'1': X_test['1']}
         Y_test_forward = {'1': Y_test['1']}
         test_perf_just_forward  = cross_entropy(W, X_test_forward, Y_test_forward)
@@ -235,7 +261,7 @@ if __name__ == '__main__':
         loss_grad = grad(total_loss_fun)
         print('...running fmin_cg')
         import scipy.optimize as spo
-        max_iter = 10
+
         best_W, fopt, func_calls, grad_calls, warnflag,\
             all_vecs = spo.fmin_cg(total_loss_fun, W, loss_grad, args=(X, Y),
                                    maxiter=max_iter, full_output=1,
@@ -255,9 +281,11 @@ if __name__ == '__main__':
     print('cross_entropy:', cross_entropy)
 
     # store the best weights
-    fname = 'window-%d_bigram-%s_hiddenSize-%d_crossEntropy-%.3f_bestIter-%d-maxEpoch-%d_opt-%s_l2reg-%.4f.pkl' \
+    if OPT_TYPE == 'SGD':
+        max_iter = num_epochs
+    fname = 'window-%d_bigram-%s_hiddenSize-%d_crossEntropy-%.3f_bestIter-%d-maxIter-%d_opt-%s_l2reg-%.4f_batchSize-%d_momemtum-%.2f_N-%d_V-%d.pkl' \
             % (window, str(BIGRAM), layer_size, cross_entropy, best_iter,
-               num_epochs, OPT_TYPE, L2_reg)
+               max_iter, OPT_TYPE, L2_reg, batch_size, momentum, N, V_size)
     fpath = os.path.join('models', 'rock-letter', 'chord2vec', fname)
     print(fpath)
     results = dict(parser=parser, W=best_W, syms=data.syms)

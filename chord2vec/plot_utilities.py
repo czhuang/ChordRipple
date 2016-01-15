@@ -3,15 +3,48 @@ from copy import copy
 
 import numpy as np
 import pylab as plt
+from pylab import setp
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d import proj3d
 
 from music_theory_tools import RELATIVE_MINOR, CIRCLE_OF_FIFTHS_MINOR_DICT, CIRCLE_OF_FIFTHS_MAJOR_DICT
+from load_songs_tools import get_raw_data, get_configs
 
 
-def plot_mat(mat, title, syms, x_tick_syms=None):
+def plot_bach_dist():
+    configs = get_configs()
+
+    print configs
+    configs['corpus'] = 'bach'
+    configs['min_count'] = 1
+
+    from make_model_tools import make_Ngram
+    ngram = make_Ngram(configs)
+    counts, syms = ngram.get_sorted_counts()
+
+    plt.figure(figsize=(10, 6))
+    plt.bar(range(len(counts)), counts)
+    plt.title(' Sorted chord counts in Bach chorale corpus', fontsize=16)
+    plt.ylabel('Chord counts', fontsize=14)
+    plt.xlabel('Chords indexed by descending counts',  fontsize=14)
+
+    setp(plt.gca().get_xticklabels(), fontsize=12)
+    setp(plt.gca().get_xticklabels(), fontsize=10)
+
+    plt.savefig('bach-counts.pdf')
+
+
+
+def plot_bar_sorted_counts():
+    pass
+
+
+
+def plot_mat(mat, title, syms, y_tick_syms=None):
     mat = np.asarray(mat)
-    plt.matshow(mat)
+    assert mat.size == len(syms)
+    from colormaps import inferno
+    plt.matshow(mat, cmap=inferno)
     # plt.title(title)
     from pylab import setp
     # if mat.shape[1] < 23:
@@ -19,15 +52,33 @@ def plot_mat(mat, title, syms, x_tick_syms=None):
     # else:
     #     fontsize = 'xx-small'
     fontsize = 'small'
-    if x_tick_syms is None:
-        x_tick_syms = syms
-    plt.yticks(range(len(x_tick_syms)), x_tick_syms)
-    plt.xticks(range(len(syms)), syms)
-    setp(plt.gca().get_yticklabels(), fontsize=fontsize)
+    fontsize = 'x-small'
+    if y_tick_syms is None:
+        y_tick_syms = syms
+    #print '# of syms:', len(syms)
+    print ' '.join(syms)
+    if len(y_tick_syms) == 1:
+        if y_tick_syms[0] == 'V':
+            y_tick_str = '$'+y_tick_syms[0]+'_1$'
+        else:
+            y_tick_str = '$'+y_tick_syms[0]+'$'
+        plt.yticks([0], [y_tick_str], fontweight='bold')
+        setp(plt.gca().get_yticklabels(), fontsize='large')
+    else:
+        plt.yticks(range(len(y_tick_syms)), y_tick_syms, fontweight='bold')
+        setp(plt.gca().get_yticklabels(), fontsize=fontsize)
+
+
+    plt.xticks(range(len(syms)), syms, fontweight='bold')
+
     setp(plt.gca().get_xticklabels(), fontsize=fontsize)
     plt.title(title)
     # plt.colorbar(shrink=.8)
-    plt.colorbar()
+    colorbar = plt.colorbar(shrink=.7, ticks=np.arange(-2.0, 2.1, 1.0))
+    if len(y_tick_syms) == 1:
+        colorbar.set_label('chord weights in '+y_tick_str, fontsize=9)  # labelpad=-40, y=0.45)
+    colorbar.ax.tick_params(labelsize=9)
+    # plt.tight_layout()
 
 
 def plot_mat_pca_ordered(bigram, data, configs,
@@ -77,22 +128,26 @@ def plot_mat_sort_with(values_to_sort_with, data, configs,
         p.writelines(line)
 
 
-def plot_mat_sorted_with_itself(values_to_sort_with, data,
-                                configs, row_tag, topn=10, save=False,
+def plot_mat_sorted_with_itself(values_to_sort_with, syms,
+                                configs, row_tag, topn=None, save=False,
                                 title_str='', fname_tag=''):
+    #print 'shape', values_to_sort_with.shape
     sorted_inds = np.argsort(-values_to_sort_with)
-    syms = data.syms
+    sorted_inds = np.squeeze(sorted_inds)
+    # syms = data.syms
+    if topn is None:
+        topn = len(syms)
     sorted_syms = [syms[ind] for ind in sorted_inds[:topn]]
     sorted_ngram = np.sort(values_to_sort_with)[::-1][:topn]
 
     if save:
         plt.clf()
-    print sorted_ngram.shape
+    #print sorted_ngram.shape
     if len(sorted_ngram.shape) == 1:
         sorted_ngram = sorted_ngram[None, :]
-    print sorted_ngram.shape
+    #print sorted_ngram.shape
     plot_mat(sorted_ngram, title_str,
-             sorted_syms, x_tick_syms=[row_tag])
+             sorted_syms, y_tick_syms=[row_tag])
 
     if save:
         plt.savefig('trans-%s-%s.pdf' % (fname_tag, configs.name))
@@ -104,30 +159,55 @@ def project_3d_to_2d(xyz, ax):
     return xy
 
 
-def annotate(syms, vecs, pl_ax, is_3d, text_size=None):
+# def annotate(syms, vecs, pl_ax, is_3d, color='b', text_size=None):
+#     print '# of syms:', len(syms)
+#     print vecs.shape
+#     for i, sym in enumerate(syms):
+#         xy = vecs[i, :]
+#         if is_3d:
+#             xy = project_3d_to_2d(xy, pl_ax)
+#         # if DUPLICATE_BY_ROTATE:
+#         #     text_size = 'small'
+#         # else:
+#         #     text_size = 'xx-small'
+#         if text_size is None:
+#             # text_size = 'large'
+#             text_size = 'xx-small'
+#         pl_ax.annotate(sym, xy=xy, xytext=(-3, 2),
+#                        textcoords = 'offset points', size=text_size, color=color)
+
+
+def annotate(syms, vecs, pl_ax, text_size=None, color='b'):
+    assert len(syms) == vecs.shape[0]
     print '# of syms:', len(syms)
     print vecs.shape
     for i, sym in enumerate(syms):
         xy = vecs[i, :]
-        if is_3d:
-            xy = project_3d_to_2d(xy, pl_ax)
-        # if DUPLICATE_BY_ROTATE:
-        #     text_size = 'small'
-        # else:
-        #     text_size = 'xx-small'
         if text_size is None:
-            # text_size = 'large'
-            text_size = 'xx-small'
+            text_size = 'x-small'
+            text_size = 'small'
+        if text_size == 'x-large':
+            fontweight = 'bold'
+        else:
+            fontweight = 'normal'
         pl_ax.annotate(sym, xy=xy, xytext=(-3, 2),
-                       textcoords = 'offset points', size=text_size, color='b')
+                       textcoords = 'offset points', size=text_size, color=color, fontweight=fontweight)
 
 
-def add_arrow_annotation(syms, vecs, arrow_dict, pl_ax, is_3d, color='#ee8d18',
+def add_arrow_annotation(syms, vecs, arrow_dict, pl_ax, is_3d=False, color='#ee8d18',
                          linewidth=3):
     if not is_3d:
         assert vecs.shape[1] == 2
     else:
         assert vecs.shape[1] == 3
+
+    highlight_syms = arrow_dict.keys()
+    filtered_vecs, filtered_syms = filter_syms(vecs, syms, include_syms=highlight_syms)
+    print highlight_syms
+    print filtered_syms
+    # assert len(highlight_syms) == len(filtered_syms)
+    annotate(filtered_syms, filtered_vecs, pl_ax, color=color, text_size='x-large')
+
     for start, end in arrow_dict.iteritems():
         if start not in syms or end not in syms:
             continue
@@ -145,6 +225,8 @@ def add_arrow_annotation(syms, vecs, arrow_dict, pl_ax, is_3d, color='#ee8d18',
         pl_ax.arrow(start_pos[0], start_pos[1], diff[0], diff[1],
                     fc=color, ec=color, head_width=0, head_length=0,
                     linewidth=linewidth)  # head_width=0.05, head_length=head_length,
+
+
 
 
 def add_most_annotations(syms, vecs, ax, is_3d, plot_relative_minor=True):
@@ -306,11 +388,32 @@ def plot_vec(vecs, syms, configs, highlight_syms=[],
         return fname
 
 
-def filter_syms(vecs, syms, syms_to_filter):
+def filter_syms(vecs, syms, exclude_syms=None, include_syms=None):
     filtered_vecs = []
     filtered_syms = []
-    for i, sym in enumerate(syms):
-        if sym not in syms_to_filter:
-            filtered_vecs.append(vecs[i, :])
-            filtered_syms.append(sym)
-    return np.asarray(filtered_vecs), filtered_syms
+    if exclude_syms is not None:
+        for i, sym in enumerate(syms):
+            if sym not in exclude_syms:
+                filtered_vecs.append(vecs[i, :])
+                filtered_syms.append(sym)
+    else:
+        filtered_vecs = vecs.copy()
+        filtered_syms = copy(syms)
+
+    filtered_vecs = np.asarray(filtered_vecs)
+
+    filtered_again_vecs = []
+    filtered_again_syms = []
+    if include_syms is not None:
+        for i, sym in enumerate(filtered_syms):
+            if sym in include_syms:
+                filtered_again_vecs.append(filtered_vecs[i, :])
+                filtered_again_syms.append(sym)
+    else:
+        filtered_again_vecs = filtered_vecs.copy()
+        filtered_again_syms = copy(filtered_syms)
+    return np.asarray(filtered_again_vecs), filtered_again_syms
+
+
+if __name__ == '__main__':
+    plot_bach_dist()

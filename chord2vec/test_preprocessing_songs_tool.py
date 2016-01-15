@@ -54,7 +54,25 @@ def check_pkl_seqs():
         p.writelines(seqs_strs)
 
 
+def test_transpose():
+    sym1 = 'C'
+    sym2 = 'F'
+    sym3 = 'Am7'
+    intval = compute_transpose_interval(sym1, sym2)
+    print 'intval', intval
+    sym3_tranposed = transpose_lettername(sym3, intval)
+    print sym1, sym2
+    print sym3, sym3_tranposed
+
+
+def test_check():
+    sym, postfix = check('G7s4')
+    print sym, postfix
+
+
 if __name__ == '__main__':
     # check_pkl_seqs()
-    print roman2letter('v7s4')
-    check_user_system_conversion()
+    # print roman2letter('v7s4')
+    # check_user_system_conversion()
+    # test_transpose()
+    test_check()

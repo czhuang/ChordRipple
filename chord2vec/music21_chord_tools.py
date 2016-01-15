@@ -1,4 +1,7 @@
 
+
+from collections import OrderedDict
+
 from music21 import roman, stream, chord, harmony, key, interval
 
 
@@ -106,8 +109,23 @@ def get_targets(seq):
     # print targets
     return targets
 
+
 def letter2music21(sym):
-    return replace_flat_dash_primary(sym, 0)
+    # return replace_flat_dash_primary(sym, 0)
+    return preprocess_letters_before_sym2chord(sym)
+
+
+def get_chordSymbol(sym):
+    sym_music21 = letter2music21(sym)
+    #print sym_music21
+    letter, postfix = check(sym_music21)
+    #print letter, postfix
+    if postfix is not None:
+        sym_music21 = letter + postfix
+    #print 'sym, sym_music21', sym, sym_music21
+    ch1 = harmony.ChordSymbol(sym_music21)
+    # print ch1
+    return ch1
 
 
 def is_roman_numeral(sym):
@@ -134,9 +152,10 @@ def sym2roman(sym):
 
 
 def replace_flat_dash_primary(sym, part_ind):
+    # don't replace 'b' with '-' when 'b' is for the pitch name, not acci
     if len(sym) > 1 and sym[1] == 'b' and sym[0] != 'b':
         sym = sym.replace('b', '-')
-    elif 'bb' == sym[:2]:
+    elif 'bb' == sym[:2]:  # i.e. bb7
         if len(sym) > 2:
             sym = sym[0] + '-' + sym[2:]
         else:
@@ -165,11 +184,23 @@ def replace_chord_with_dominant_seventh(sym):
     return sym.replace('x7', 'b7')
 
 
+def replace_d_with_dim(sym):
+    if 'dim' in sym:
+        return sym
+    elif len(sym) > 1 and 'd' in sym[1:] and sym.index('d', 1) != 0:
+        ind = sym.index('d', 1)
+        sym = sym[:ind] + 'dim' + sym[ind+1:]
+    return sym
+
+
 def preprocess_letters_before_sym2chord(sym):
     parts = sym.split('/')
     parts = [replace_flat_dash_primary(part, i) for i, part in enumerate(parts)]
-    parts = [add_min_to_lowercase(part, i) for i, part in enumerate(parts)]
+    # TODO: does not add min to right place with figures that have extensions such as a7
+    # need to break it down before adding m
+    # parts = [add_min_to_lowercase(part, i) for i, part in enumerate(parts)]
     parts = [replace_chord_with_dominant_seventh(part) for part in parts]
+    parts = [replace_d_with_dim(part) for part in parts]
 
     return '/'.join(parts)
 
@@ -298,11 +329,59 @@ def syms2score(syms):
 #     return score
 
 
+def roman2letter_subroutine(sym):
+    rn = roman.RomanNumeral(sym)
+    # print rn
+    ch = chord.Chord(rn.pitches)
+    # print ch
+    cs = harmony.chordSymbolFromChord(ch)
+    # print cs
+    # print cs.figure
+    return cs.figure
+
+
+def check(sym):
+    fixes = OrderedDict()
+    fixes['7s4'] = 'sus4'
+    fixes['s4'] = 'sus4'
+    fixes['h'] = 'm7b5'
+    # print fixes.keys()
+    postfix = None
+    sym = sym.replace('x', 'o')
+    partial_sym = sym
+    for k, v in fixes.iteritems():
+        if k in sym and 'sus4' not in sym:
+            ind = sym.index(k)
+            # print 'ind', ind, sym
+            partial_sym = sym[:ind]
+            partial_sym = partial_sym.upper()
+            postfix = v
+            break
+    return partial_sym, postfix
+
+
+def roman2letter(sym):
+    # print '...', sym,
+    partial_sym, postfix = check(sym)
+    # print 'partial_sym', partial_sym, postfix
+    letter = roman2letter_subroutine(partial_sym)
+    if postfix is not None:
+        letter = letter + postfix
+    # print letter
+    return letter
+
+
 if __name__ == '__main__':
     # lettername = roman2letter('ii/o6/5')
     # lettername = roman2letter('It6')
     # print lettername
-    ch = roman2letter_transpose('V', transpose=-1)
-    print ch
-    ch = roman2letter_transpose('VII6', transpose=-1)
-    print ch
+    # ch = roman2letter_transpose('V', transpose=-1)
+    # print ch
+    # ch = roman2letter_transpose('VII6', transpose=-1)
+    # print ch
+    # lettername = roman2letter('iih7')
+    print replace_d_with_dim('ddim')
+
+    print '-------'
+    print get_chordSymbol('a7')
+    print get_chordSymbol('e-9')

@@ -47,9 +47,13 @@ def get_configs(print_config=True):
     configs = Configs(layer1_sz, random_scale, regularize)
 
     configs['retrieve_model'] = True
+    configs['retrieve_model'] = False
 
-    configs['min_count'] = 1
-    # configs['min_count'] = 20
+    # for rock experiments
+    # configs['min_count'] = 1
+
+    # for bach experiments
+    configs['min_count'] = 5
 
     configs['window'] = 1
     configs['bigram'] = False
@@ -59,13 +63,14 @@ def get_configs(print_config=True):
     # algorithm for optimization
     # conjugate gradient or stochastic gradient descent
     configs['opt_algorithm'] = 'cg'
+    configs['opt_algorithm'] = 'sgd'
     assert configs['opt_algorithm'] in OPT_ALGORITHMS
 
     # setting for conjugate gradient
-    configs['max_iter'] = 2000
+    configs['max_iter'] = 500
 
     # setting for stochastic gradient descent
-    configs['num_epochs'] = 30
+    configs['num_epochs'] = 5
     configs['learn_rate'] = 0.001
     configs['batch_sz'] = 256
 
@@ -75,17 +80,20 @@ def get_configs(print_config=True):
         configs['do_pca'] = False
 
     # corpus setting
-    # configs['corpus'] = 'bach'
-    configs['corpus'] = 'rock'
+    configs['corpus'] = 'bach'
+    # configs['corpus'] = 'rock'
     assert configs['corpus'] in CORPORA
+
+    # configs['transposed'] = True
+    configs['transposed'] = False
 
     configs['augmented_data'] = False
 
     configs['use_letternames'] = True
     # configs['use_letternames'] = False
 
-    # if configs['corpus'] == 'bach':
-    #     configs['use_letternames'] = False
+    if configs['corpus'] == 'bach':
+        configs['use_letternames'] = False
 
     configs['use_durations'] = False
 

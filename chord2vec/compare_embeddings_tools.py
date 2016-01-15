@@ -18,7 +18,7 @@ def plot_SGD_embedding(highlight_syms=None, zoom=False):
 
 
 def highlight_syms_compare():
-    highlight_syms = ['C', 'F', 'G', 'Cm', 'B-', 'A-',
+    highlight_syms = ['C', 'F', 'G', 'D', 'A', 'E', 'E-', 'Cm', 'B-', 'A-',
                       'Fmaj7', 'Fmaj7/A', 'Am']
 
     plot_SGD_embedding(highlight_syms, zoom=True)
@@ -50,7 +50,7 @@ def neighborhood_compare():
 
 
 if __name__ == '__main__':
-    # highlight_syms_compare()
-    neighborhood_compare()
+    highlight_syms_compare()
+    # neighborhood_compare()
 
     # plot_SGD_embedding()

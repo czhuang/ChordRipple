@@ -87,6 +87,7 @@ def plot_CG_chord2vec_weights(highlight_syms=None):
     plot_vec(nn.W1, nn.syms, highlight_syms=highlight_syms, tag=tag)
 
 
+
 if __name__ == '__main__':
     retrieve_chord2vec_weights()
     # retrieve_previous_weights()

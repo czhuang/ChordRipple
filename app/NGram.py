@@ -254,6 +254,25 @@ class NGram(object):
         else:
             return [sym2chord(sym) for sym in seq_cont]
 
+    def get_top_count_syms(self, topn):
+        sorted_inds = np.argsort(-self.unigram_counts)
+        if topn > len(self.syms):
+            topn = len(self.syms)
+        sorted_syms = []
+        for ind in sorted_inds:
+            sym = self.syms[ind]
+            if len(sym) > 0:
+                sorted_syms.append(sym)
+                if len(sorted_syms) == topn:
+                    break
+        return sorted_syms
+
+    def get_sorted_counts(self):
+        sorted_inds = np.argsort(-self.unigram_counts)
+        sorted_syms = [self.syms[ind] for ind in sorted_inds]
+        sorted_counts = [self.unigram_counts[ind] for ind in sorted_inds]
+        return sorted_counts, sorted_syms
+
 
 def unigram(seqs, syms):
     unigram_counts = np.zeros((len(syms)))

@@ -1,8 +1,9 @@
 
 from copy import copy
 
-import numpy as np
+from collections import defaultdict
 
+import numpy as np
 
 from word2vec_utility_tools import collect_valid_skip_grams, get_train_test_encodings
 
@@ -36,12 +37,35 @@ class PreprocessedData(object):
             self.ins, self.outs \
                 = self.concatenate_data(self.seqs_processed)
 
+            # these are dictionaries indexed by time step
             self.inputs, self.outputs, self.weights,\
                 self.test_inputs, self.test_outputs, self.test_weights =\
                 get_train_test_encodings(self.ins, self.outs, syms)
 
+            self.inputs_all, self.outputs_all = self.combine_train_test_dict()
+
             self.keys = self.check_keys()
             self.sorted_keys = self.sort_keys()
+
+    def combine_train_test_dict(self):
+        inputs_all = defaultdict(list)
+        for k, ins in self.inputs.iteritems():
+            inputs_all[k].extend(ins)
+        for k, ins in self.test_inputs.iteritems():
+            inputs_all[k].extend(ins)
+
+        outputs_all = defaultdict(list)
+        for k, outs in self.outputs.iteritems():
+            outputs_all[k].extend(outs)
+        for k, outs in self.test_outputs.iteritems():
+            outputs_all[k].extend(outs)
+
+        for k, ins in inputs_all.iteritems():
+            inputs_all[k] = np.asarray(ins)
+        for k, outs in outputs_all.iteritems():
+            outputs_all[k] = np.asarray(outs)
+
+        return inputs_all, outputs_all
 
     def find_subseq(self, subseq):
         seqs = []

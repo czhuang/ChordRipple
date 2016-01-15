@@ -28,8 +28,11 @@ else:
 
 if USING_LETTERNAMES:
     CIRCLE_OF_FIFTHS_MAJOR = ['A', 'D', 'G', 'C', 'F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb', 'B', 'E']
+    # CIRCLE_OF_FIFTHS_MAJOR_ENHARM = ['A', 'D', 'G', 'B#', 'E#', 'A#', 'D#', 'G#', 'C#', 'Gb', 'Cb', 'E']
+    # CIRCLE_OF_FIFTHS_MAJOR = ['A', 'D', 'G', 'C', 'F', 'B-', 'E-', 'A-', 'D-', 'G-', 'B', 'E']
     # CIRCLE_OF_FIFTHS_MINOR = [ note.lower() for note in CIRCLE_OF_FIFTHS_MAJOR ]
     CIRCLE_OF_FIFTHS_MINOR = [note+'m' for note in CIRCLE_OF_FIFTHS_MAJOR]
+    # CIRCLE_OF_FIFTHS_MINOR_ENHARM = [note+'m' for note in CIRCLE_OF_FIFTHS_MAJOR_ENHARM]
 else:
     CIRCLE_OF_FIFTHS_MAJOR = ['VI', 'II', 'V', 'I', 'IV',
                               'bVII', 'bIII', 'bVI', 'bII', 'bV', 'VII', 'III']
@@ -48,6 +51,9 @@ def make_circle_of_fifths_dict(circle_of_fifths_chords):
     return cof_dict
 CIRCLE_OF_FIFTHS_MAJOR_DICT = make_circle_of_fifths_dict(CIRCLE_OF_FIFTHS_MAJOR)
 CIRCLE_OF_FIFTHS_MINOR_DICT = make_circle_of_fifths_dict(CIRCLE_OF_FIFTHS_MINOR)
+# CIRCLE_OF_FIFTHS_MAJOR_ENHARM_DICT = make_circle_of_fifths_dict(CIRCLE_OF_FIFTHS_MAJOR_ENHARM)
+# CIRCLE_OF_FIFTHS_MINOR_ENHARM_DICT = make_circle_of_fifths_dict(CIRCLE_OF_FIFTHS_MINOR_ENHARM)
+
 # print len(CIRCLE_OF_FIFTHS_MAJOR_DICT), CIRCLE_OF_FIFTHS_MAJOR_DICT
 # print len(CIRCLE_OF_FIFTHS_MINOR_DICT), CIRCLE_OF_FIFTHS_MINOR_DICT
 
