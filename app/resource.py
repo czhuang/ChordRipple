@@ -47,7 +47,8 @@ from Database import CHORD_LEN
 from Database import Database, DatabasePlacebo
 
 ALL_SIMS = True
-DISABLE_NEXT = True
+DISABLE_NEXT = False
+DISABLE_SIDE_RIPPLES = True
 
 
 class Resource(BaseNamespace, BroadcastMixin):
@@ -248,6 +249,9 @@ class Resource(BaseNamespace, BroadcastMixin):
     #         self.change_experiment_type(previous_mode)
     #     else:
     #         self.change_experiment_type(SIM_BUT_LESS_TYPICAL)
+
+    def on_defaultSeq(self):
+        self.on_generate_complete_seq(self.init_seqs[0])
 
     def on_transitionMode(self):
         self.change_experiment_type(TYPICAL)
@@ -969,7 +973,7 @@ class Resource(BaseNamespace, BroadcastMixin):
                     print s, sinds[i]
 
         # bottom, side ripples
-        if self.experiment_type == RIPPLE:
+        if self.experiment_type == RIPPLE and not DISABLE_SIDE_RIPPLES:
             suggestion_items = self.generate_side_ripples(sym_ind, original_seq)
             self.suggestions.add(suggestion_items)
 

@@ -39,6 +39,14 @@ if (!demo) {
                           socket.emit("rippleOff")
                           })
     }
+    
+    // add click to get default sequence
+    var defaultSeq = $('<button>').css('margin-left', '205px').addClass('btn btn-default btn-mini').text('Default seq').appendTo(videoTopPanel)
+    defaultSeq.click(function(e) {
+                    console.log('...defaultSeq clicked')
+                    socket.emit("defaultSeq")
+                    })
+    
 }
 
 
