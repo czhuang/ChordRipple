@@ -1,7 +1,7 @@
 
 import time
 
-OPT_ALGORITHMS = ['cg', 'sgd']
+OPT_ALGORITHMS = ['CG', 'SGD']
 CORPORA = ['bach', 'rock']
 
 
@@ -53,7 +53,7 @@ def get_configs(print_config=True):
     # configs['min_count'] = 1
 
     # for bach experiments
-    configs['min_count'] = 5
+    configs['min_count'] = 5  #5
 
     configs['window'] = 1
     configs['bigram'] = False
@@ -62,8 +62,8 @@ def get_configs(print_config=True):
 
     # algorithm for optimization
     # conjugate gradient or stochastic gradient descent
-    configs['opt_algorithm'] = 'cg'
-    configs['opt_algorithm'] = 'sgd'
+    configs['opt_algorithm'] = 'CG'
+    configs['opt_algorithm'] = 'SGD'
     assert configs['opt_algorithm'] in OPT_ALGORITHMS
 
     # setting for conjugate gradient
@@ -81,11 +81,11 @@ def get_configs(print_config=True):
 
     # corpus setting
     configs['corpus'] = 'bach'
-    # configs['corpus'] = 'rock'
+    configs['corpus'] = 'rock'
     assert configs['corpus'] in CORPORA
 
-    # configs['transposed'] = True
-    configs['transposed'] = False
+    configs['transposed'] = True
+    # configs['transposed'] = False
 
     configs['augmented_data'] = False
 

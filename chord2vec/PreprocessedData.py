@@ -20,10 +20,10 @@ class PreprocessedData(object):
         self.syms = syms
 
         # add ending symbol
-        if syms[-1] != '':
-            for seq in seqs:
-                seq.append('')
-            syms.append('')
+        # if syms[-1] != '':
+        #     for seq in seqs:
+        #         seq.append('')
+        #     syms.append('')
 
         from load_songs_tools import get_segmented_songs
         self.subseqs = get_segmented_songs(seqs)

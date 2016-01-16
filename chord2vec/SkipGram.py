@@ -78,17 +78,18 @@ if __name__ == '__main__':
     # Network parameters
     # layer_sizes = [784, 200, 100, 10]
     BIGRAM = True
+    BIGRAM = False
     USE_ALL_DATA_FOR_TRAINING = True
 
-    OPT_TYPE = 'CG'  #'SGD'  #'CG'
+    OPT_TYPE = 'SGD'  #'CG'  #'SGD'
 
     BATCH_MODE = False  # False meanings use Stoachastic GD
                         # True means batch everything in one
-    layer_size = 1  #2  #20  # 30  #20  #10  #100  #20
+    layer_size = 10  #5  #2  #20  # 30  #20  #10  #100  #20
     window = 1  #2
 
     # Training parameters
-    L2_reg = 0.01  #0.001  #0.001  #0.01 (was reasonable for SGD)  #0  # 0.1
+    L2_reg = 0.0001  #0.001  #0.001  #0.01 (was reasonable for SGD)  #0  # 0.1
     param_scale = 0.1
     learning_rate = 1e-3  # 1e-4  # 1e-3
     momentum = 0.3  # 0.3 (best so far), 0.5  # 0.9
@@ -97,10 +98,10 @@ if __name__ == '__main__':
     # batch_size = 32  #64  # 1024  # 256  # 32  # 64
 
     # for 'SGD'
-    num_epochs = 1000  #20  #30  # 30 # 50
+    num_epochs = 30  #200  #20  #30  # 30 # 50
 
     # for 'CG'
-    max_iter = 500
+    max_iter = 200
 
 
     # Load data

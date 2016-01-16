@@ -30,8 +30,15 @@ class NGram(object):
             from PreprocessedData import RawData
             self.data = RawData(seqs, syms)
             self.ngram, self.ngram_counts = self.make_ngram(seqs, syms, n)
+
             self.start_probs = self.make_start_probs(seqs, syms)
             self.unigram, self.unigram_counts = self.make_ngram(seqs, syms, 1)
+
+            # check
+            from plot_utilities import output_transition_as_text
+            output_transition_as_text(self.unigram_counts, range(len(self.syms)),
+                              self.ngram_counts, self.syms, self.syms, 'bigram')
+
 
     @property
     def trans(self):
@@ -318,5 +325,6 @@ def bigram(seqs, syms, row_syms=None, forward=True):
     norm = np.sum(bigram_counts, axis=1)
     bigram_probs = bigram_counts / norm[:, None]
     assert np.allclose(np.sum(bigram_probs, axis=1), np.ones((len(row_syms))))
+
     return bigram_probs, bigram_counts
 

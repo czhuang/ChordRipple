@@ -65,7 +65,6 @@ def plot_vec(vecs, syms, highlight_syms=None,
     else:
         title += " (all songs kept in original key)"
     plt.title(title)
-
     if doPCA:
         plt.xlabel("first principal component")
         plt.ylabel("second principal component")
@@ -78,6 +77,10 @@ def plot_vec(vecs, syms, highlight_syms=None,
     padding = 0.15
     plt.xlim(mins[0]-padding, maxs[0]+padding)
     plt.ylim(mins[1]-padding, maxs[1]+padding)
+
+    # draw vertical line
+    plt.vlines(0, mins[1], maxs[1], linestyles='--', colors='b', linewidth=1)
+    plt.hlines(0, mins[0], maxs[0], linestyles='--', colors='b', linewidth=1)
 
     plt.tick_params(axis='both', which='major', labelsize=6)
     if save:
@@ -178,9 +181,26 @@ def plot_circles_from_SKipGram_SGD_pickle():
     # not bigram, size 2
     fpath = 'models/rock-letter/chord2vec/window-1_bigram-False_hiddenSize-2_crossEntropy-3.001_bestIter-249-maxEpoch-250_opt-SGD_l2reg-0.0000_batchSize-1024_momemtum-0.30_N-1155_V-93.pkl'
 
+    # bach, not bigram, size 2, only the 30 chords, the 31st is a blank space
+    fpath = 'models/rock-letter/chord2vec/window-1_bigram-False_hiddenSize-2_crossEntropy-2.684_bestIter-99-maxIter-100_opt-SGD_l2reg-0.0100_batchSize-128_momemtum-0.30_N-950_V-31.pkl'
+
+    fpath = 'models/rock-letter/chord2vec/window-1_bigram-False_hiddenSize-5_crossEntropy-2.524_bestIter-99-maxIter-100_opt-SGD_l2reg-0.0100_batchSize-128_momemtum-0.30_N-950_V-31.pkl'
+
+    fpath = 'models/rock-letter/chord2vec/window-1_bigram-False_hiddenSize-2_crossEntropy-2.545_bestIter-199-maxIter-200_opt-SGD_l2reg-0.0100_batchSize-128_momemtum-0.30_N-950_V-31.pkl'
+    fpath = 'models/rock-letter/chord2vec/window-1_bigram-False_hiddenSize-2_crossEntropy-2.488_bestIter-399-maxIter-400_opt-SGD_l2reg-0.0001_batchSize-128_momemtum-0.30_N-950_V-31.pkl'
+    fpath = 'models/rock-letter/chord2vec/window-1_bigram-False_hiddenSize-2_crossEntropy-2.481_bestIter-499-maxIter-500_opt-SGD_l2reg-0.0001_batchSize-128_momemtum-0.30_N-950_V-31.pkl'
 
     W1, replaced_syms = read_SkipGram_pickle(fpath)
     plot_circles(W1, replaced_syms)
+
+
+def plot_vecs_from_saved_vecs():
+    fpath = 'models/rock-letter/chord2vec/window-1_bigram-False_hiddenSize-10_crossEntropy-2.590_bestIter-29-maxIter-30_opt-SGD_l2reg-0.0001_batchSize-128_momemtum-0.30_N-10806_V-103.pkl'
+
+    # transposed rock
+    fpath = 'models/rock-letter/chord2vec/window-1_bigram-False_hiddenSize-10_crossEntropy-2.249_bestIter-29-maxIter-30_opt-SGD_l2reg-0.0001_batchSize-128_momemtum-0.30_N-11026_V-98.pkl'
+    W1, replaced_syms = read_SkipGram_pickle(fpath)
+    plot_vecs_wrapper(W1, replaced_syms)
 
 
 def read_SkipGram_pickle(fpath, return_parser_weights=False):
@@ -225,6 +245,18 @@ def plot_circles(W1, syms):
 
     # add_arrow_annotation(syms, vecs, CIRCLE_OF_FIFTHS_MAJOR_ENHARM_DICT, ax, color='g')
     # add_arrow_annotation(syms, vecs, CIRCLE_OF_FIFTHS_MINOR_ENHARM_DICT, ax, color='m')
+    plt.tight_layout()
+
+    id = np.random.random_integers(1000000)
+    print 'id: %d' % id
+    plt.savefig('circle_test-%d.pdf' % id)
+
+
+def plot_vecs_wrapper(W1, syms):
+    highlight_syms = None
+    print '# of syms:', len(syms)
+    ax, vecs = plot_vec(W1, syms, highlight_syms=highlight_syms, tag='vecs_test', save=False, return_vecs=True,
+                        transposed_to_C=True)
     plt.tight_layout()
 
     id = np.random.random_integers(1000000)
@@ -296,6 +328,6 @@ def plot_1d_weights(weights, syms, tag):
 
 if __name__ == '__main__':
     # plot_circles_from_SkipGramNN_CG_pickle()
-    plot_circles_from_SKipGram_SGD_pickle()
+    # plot_circles_from_SKipGram_SGD_pickle()
     # plot_axes()
-
+    plot_vecs_from_saved_vecs()

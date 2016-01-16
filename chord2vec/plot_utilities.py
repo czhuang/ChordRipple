@@ -17,32 +17,90 @@ def plot_bach_dist():
     print configs
     configs['corpus'] = 'bach'
     configs['min_count'] = 1
+    plot_dist(configs)
 
+
+def plot_rock_nontransposed_dist():
+    configs = get_configs()
+
+    configs['corpus'] = 'rock'
+    configs['min_count'] = 1
+    configs['transposed'] = False
+    plot_dist(configs)
+
+
+def plot_rock_transposed_dist():
+    configs = get_configs()
+
+    configs['corpus'] = 'rock'
+    configs['min_count'] = 1
+    configs['transposed'] = True
+    plot_dist(configs)
+
+
+def plot_dist(configs):
     from make_model_tools import make_Ngram
     ngram = make_Ngram(configs)
     counts, syms = ngram.get_sorted_counts()
+    print "---top 5---"
+    for i in range(5):
+        print syms[i], counts[i]
 
+    print "\n---bottom 5---"
+    for i in range(1, 20):
+        print syms[-i], counts[-i]
+
+    corpus = configs['corpus']
     plt.figure(figsize=(10, 6))
     plt.bar(range(len(counts)), counts)
-    plt.title(' Sorted chord counts in Bach chorale corpus', fontsize=16)
+    plt.title('Sorted chord counts in %s corpus' % corpus, fontsize=16)
     plt.ylabel('Chord counts', fontsize=14)
     plt.xlabel('Chords indexed by descending counts',  fontsize=14)
 
     setp(plt.gca().get_xticklabels(), fontsize=12)
     setp(plt.gca().get_xticklabels(), fontsize=10)
 
-    plt.savefig('bach-counts.pdf')
+    # plt.savefig('%s-counts.pdf' % configs['corpus'])
+    plt.savefig('%s-counts.png' % configs['corpus'])
 
 
+def plot_rock_mat():
+    configs = get_configs()
 
-def plot_bar_sorted_counts():
-    pass
+    configs['corpus'] = 'rock'
+    configs['min_count'] = 1
+    configs['transposed'] = True
+    plot_mat_wrapper(configs)
 
 
+def plot_bach_mat():
+    configs = get_configs()
 
-def plot_mat(mat, title, syms, y_tick_syms=None):
+    configs['corpus'] = 'bach'
+    configs['min_count'] = 5
+    plot_mat_wrapper(configs)
+
+
+def plot_mat_wrapper(configs):
+    from make_model_tools import make_Ngram
+    ngram = make_Ngram(configs)
+    counts, _ = ngram.get_sorted_counts()
+    # bigram = ngram.ngram_counts
+    bigram = ngram.ngram
+    syms = ngram.syms
+    print bigram.shape, len(syms)
+    assert bigram.shape[1] == len(syms)
+
+    plot_mat_pca_ordered(bigram, syms, configs,
+                         fname_tag='', unigram=counts)
+    # title = "Transition Counts in the %s corpus" % configs['corpus']
+    # plot_mat(bigram, title, syms, save=True)
+
+
+def plot_mat(mat, title, syms, y_tick_syms=None, save=False):
     mat = np.asarray(mat)
-    assert mat.size == len(syms)
+    print mat.size, len(syms)
+    assert mat.size == len(syms) or mat.size == len(syms)**2
     from colormaps import inferno
     plt.matshow(mat, cmap=inferno)
     # plt.title(title)
@@ -52,7 +110,7 @@ def plot_mat(mat, title, syms, y_tick_syms=None):
     # else:
     #     fontsize = 'xx-small'
     fontsize = 'small'
-    fontsize = 'x-small'
+    fontsize = 'xx-small'
     if y_tick_syms is None:
         y_tick_syms = syms
     #print '# of syms:', len(syms)
@@ -65,23 +123,33 @@ def plot_mat(mat, title, syms, y_tick_syms=None):
         plt.yticks([0], [y_tick_str], fontweight='bold')
         setp(plt.gca().get_yticklabels(), fontsize='large')
     else:
-        plt.yticks(range(len(y_tick_syms)), y_tick_syms, fontweight='bold')
+        if len(mat.shape) == 1:
+            plt.yticks(range(len(y_tick_syms)), y_tick_syms, fontweight='bold')
+        else:
+            plt.yticks(range(len(y_tick_syms)), y_tick_syms)
         setp(plt.gca().get_yticklabels(), fontsize=fontsize)
 
-
-    plt.xticks(range(len(syms)), syms, fontweight='bold')
+    # if one-dimensional
+    if len(mat.shape) == 1:
+        plt.xticks(range(len(syms)), syms, fontweight='bold')
+    else:
+        plt.xticks(range(len(syms)), syms, rotation='vertical')
 
     setp(plt.gca().get_xticklabels(), fontsize=fontsize)
-    plt.title(title)
+    plt.title(title, y=1.1)
     # plt.colorbar(shrink=.8)
-    colorbar = plt.colorbar(shrink=.7, ticks=np.arange(-2.0, 2.1, 1.0))
+    if len(mat.shape) == 1:
+        colorbar = plt.colorbar(shrink=.7, ticks=np.arange(-2.0, 2.1, 1.0))
+    else:
+        colorbar = plt.colorbar(shrink=.7)
     if len(y_tick_syms) == 1:
         colorbar.set_label('chord weights in '+y_tick_str, fontsize=9)  # labelpad=-40, y=0.45)
     colorbar.ax.tick_params(labelsize=9)
     # plt.tight_layout()
+    plt.savefig('not_sorted_mat.pdf')
 
 
-def plot_mat_pca_ordered(bigram, data, configs,
+def plot_mat_pca_ordered(bigram, syms, configs,
                          fname_tag='', unigram=None):
     from sklearn.decomposition import PCA
     pca = PCA(n_components=1)
@@ -89,17 +157,17 @@ def plot_mat_pca_ordered(bigram, data, configs,
     transformed_bigram = np.squeeze(pca.transform(bigram))
     print transformed_bigram.shape
     print 'variance covered: %.2f' % np.sum(pca.explained_variance_ratio_)
-    plot_mat_sort_with(transformed_bigram, data, configs,
-                       bigram, unigram, fname_tag=fname_tag, technique='PCA')
+    plot_mat_sort_with(transformed_bigram, syms, configs,
+                       bigram, unigram,
+                       fname_tag=fname_tag, technique='PCA')
     return transformed_bigram
 
 
-def plot_mat_sort_with(values_to_sort_with, data, configs,
+def plot_mat_sort_with(values_to_sort_with, syms, configs,
                        bigram, unigram=None, fname_tag='', technique='PCA'):
-    sorted_inds = np.argsort(values_to_sort_with)
+    sorted_inds = np.argsort(-values_to_sort_with)
     print sorted_inds
 
-    syms = data.syms
     sorted_syms = [syms[ind] for ind in sorted_inds]
     # sorted_ngram = bigram[sorted_inds]
     print bigram.shape
@@ -107,13 +175,27 @@ def plot_mat_sort_with(values_to_sort_with, data, configs,
     sorted_ngram = np.squeeze(np.asarray(sorted_ngram))
     print sorted_ngram.shape
     plt.clf()
-    title_str = '%s sorted %s transition matrix' % (technique, fname_tag)
+    title_str = '%s sorted %s transition count matrix' % (technique, fname_tag)
     plot_mat(sorted_ngram, title_str, sorted_syms)
     plt.savefig('all-%s-ordered-%s-%s.pdf' %
                 (technique, fname_tag, configs.name))
+    plt.savefig('all-%s-ordered-%s-%s.png' %
+                (technique, fname_tag, configs.name))
 
+    # just for saving the transition into text, sorted by unigram..
     if unigram is None:
         return
+    output_transition_as_text(unigram, sorted_inds,
+                              sorted_ngram, sorted_syms, syms, fname_tag)
+
+
+def output_transition_as_text(unigram, sorted_inds,
+                              sorted_ngram, sorted_syms, syms, fname_tag=''):
+    test_sorted_syms = [syms[i] for i in sorted_inds]
+    print len(test_sorted_syms), len(sorted_syms)
+    print test_sorted_syms[5:]
+    print sorted_syms[5:]
+    assert test_sorted_syms == sorted_syms
     sorted_unigram = [unigram[ind] for ind in sorted_inds]
     line = ''
     for i in range(len(syms)):
@@ -132,7 +214,7 @@ def plot_mat_sorted_with_itself(values_to_sort_with, syms,
                                 configs, row_tag, topn=None, save=False,
                                 title_str='', fname_tag=''):
     #print 'shape', values_to_sort_with.shape
-    sorted_inds = np.argsort(-values_to_sort_with)
+    sorted_inds = np.argsort(values_to_sort_with)
     sorted_inds = np.squeeze(sorted_inds)
     # syms = data.syms
     if topn is None:
@@ -416,4 +498,8 @@ def filter_syms(vecs, syms, exclude_syms=None, include_syms=None):
 
 
 if __name__ == '__main__':
-    plot_bach_dist()
+    # plot_bach_dist()
+    # plot_rock_nontransposed_dist()
+    # plot_rock_transposed_dist()
+    # plot_rock_mat()
+    plot_bach_mat()
