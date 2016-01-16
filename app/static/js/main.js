@@ -7,6 +7,7 @@ function status(x) {
 
 
 var withoutPicker = true
+var demo = true
 
 
 var inputHistory = [];
@@ -207,11 +208,18 @@ function clearBookmarks() {
 //    bookmarkPanel.empty()
 }
 
-
+if (!demo) {
 $('<hr>').appendTo(past)
+}
 var highlightColor = getColorForFocus()
 
-var stepFour = $('<'+instructionStepSize+'>').text('Step 3: ').css('color', highlightColor).appendTo(past)
+var stepFour = $('<'+instructionStepSize+'>').text('Step 3: ').css('color', highlightColor)
+
+if (!demo) {
+    stepFour.appendTo(past)
+}
+
+if (!demo) {
 //var feedbackPrompt = $('<small>').text("Do you have any comments about the experience? Bug reports?  Any features you wish was there?")
 //var questionText = "How would you describe the chord transformations that you performed?  What was your goal?  Did you have a clear goal in mind at the beginning?  If not, when and how did the goal emerge?  How would you describe your exploration process? When did you use ripples (if they were available)?"
 var questionText = "How did you use the chord recommendations to transform the chord progression?  What was your goal?  Was the goal clear from the beginning?  If not, when and how did the goal emerge?  How would you describe your exploration process?"
@@ -224,8 +232,11 @@ var feedbackPromptTwo = $('<small>').text(questionTextTwo)
 feedbackPromptTwo.appendTo(stepFour)
 var feedbackInputBox = $('<textarea>').css('width', WIDTH_PIXEL).css('height', '100px').appendTo(past)
 
-var userFeedbackPanel = $('<'+instructionStepSize+'>').text('Step 4: ').css('color', highlightColor).appendTo(past)
-
+var userFeedbackPanel = $('<'+instructionStepSize+'>').text('Step 4: ').css('color', highlightColor)
+}
+if (!demo) {
+    userFeedbackPanel.appendTo(past)
+}
 
 
 // TODO: add subtitles to questions?
@@ -278,9 +289,10 @@ for (var i=0; i<questions.length;i++) {
 
 
 
+if (!demo) {
+    var feedbackButton = $('<button>').addClass('btn btn-primary').text('Next').appendTo(past)
+    var questionsTextArea = $('<normal>').appendTo(past)
 
-var feedbackButton = $('<button>').addClass('btn btn-primary').text('Next').appendTo(past)
-var questionsTextArea = $('<normal>').appendTo(past)
 
 var experiment_names = ['tutorial', 'first', 'second', 'third']
 var experiment_count = 0
@@ -333,7 +345,9 @@ feedbackButton.click(function(e) {
     }
 
 
-});
+}); // feedbackButton
+    
+} // if (!demo)
 
 // -------- main -----------
 var parent = $('#title')
@@ -479,7 +493,12 @@ var parentId =  "inputTextParent"
 
 
 var highlightColor = getColorForFocus()
-var stepTwo = $('<'+instructionStepSize+'>').text('Step 2: ').css('color', highlightColor).appendTo(parent)
+var stepTwo = $('<'+instructionStepSize+'>').text('Step 2: ').css('color', highlightColor)
+
+if (!demo) {
+    stepTwo.appendTo(parent)
+}
+
 //var chordInstructText = "Type / choose some chords here.  Each input box takes a chord and corresponds to a scene in the video.  There's some auto-completions to help you along the way."
 var chordInstructText = "Transform the given chord progression so that it works better with the image.  Feel free to explore the suggestions given and save as soon as you find something good and as often as you want (as there is currently no undo button).  All recommendations assume that the chord progression is in C.  You can modulate to other key areas but bear in mind that they will be relative to C. "
 $('<small>').text(chordInstructText).appendTo(stepTwo)

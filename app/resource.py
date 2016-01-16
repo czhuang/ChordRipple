@@ -91,7 +91,10 @@ class Resource(BaseNamespace, BroadcastMixin):
 
         # self.experiment_type = EXPERIMENT_TYPE
         # for tutorial, always start with ripple
-        self.experiment_type = RIPPLE # int(self.ordering[0])
+        self.experiment_type = RIPPLE  # int(self.ordering[0])
+
+        self.experiment_type = TYPICAL
+        self.expr_type_history = [self.experiment_type]
 
         query = QueryObject(dict(data=list(self.ordering), actionKind="ordering"))
         self.index_user_action(query)
@@ -221,6 +224,36 @@ class Resource(BaseNamespace, BroadcastMixin):
 
     # def on_loopLen(self, loop_len):
     #     self.loop_len = loop_len
+
+    def on_rippleOn(self):
+        self.change_experiment_type(RIPPLE)
+
+    def change_experiment_type(self, new_type):
+        self.experiment_type = new_type
+        self.expr_type_history.append(new_type)
+        print 'expr type hietory', self.expr_type_history
+        print 'EXPERIMENT type changed to:', EXPERIMENT_TYPE_STRS[self.experiment_type]
+
+    def get_previous_experiment_mode(self):
+        # mode gives transition versus sim
+        # orthogonal dimension to ripple or not
+        for type_ in self.expr_type_history[::-1]:
+            if type_ != RIPPLE:
+                return type_
+        return None
+
+    # def on_rippleOff(self):
+    #     previous_mode = self.get_previous_experiment_type()
+    #     if previous_mode is not None:
+    #         self.change_experiment_type(previous_mode)
+    #     else:
+    #         self.change_experiment_type(SIM_BUT_LESS_TYPICAL)
+
+    def on_transitionMode(self):
+        self.change_experiment_type(TYPICAL)
+
+    def on_simMode(self):
+        self.change_experiment_type(SIM_BUT_LESS_TYPICAL)
 
     def on_inputSave(self, text):
         # log add automatically saves upon seeing type "save"

@@ -4,12 +4,42 @@ var firstUpdateCellColor = false
 
 var videoTopPanel = $('#videoTop')
 var highlightColor = getColorForFocus()
-var stepOne = $('<'+instructionStepSize+'>').text('Step 1: ').css('color', highlightColor).appendTo(videoTopPanel)
+if (!demo) {
+    var stepOne = $('<'+instructionStepSize+'>').text('Step 1: ').css('color', highlightColor).appendTo(videoTopPanel)
 //var videoText = "Check out the video. Beware that it loops!"
-var videoText = "Check out this image!"
-$('<small>').text(videoText).appendTo(stepOne)
+    var videoText = "Check out this image!"
+    $('<small>').text(videoText).appendTo(stepOne)
 //$('<'+instructionTextSize+'>').text(videoText).appendTo(stepOne)
-
+} else {
+    var stepOne = $('<h1>').text('ChordRipple ').css('color', highlightColor).appendTo(videoTopPanel)
+    
+    
+    var transitionButton = $('<button>').css('margin-right', '10px').addClass('btn btn-default btn-mini').text('Transition (typical)').appendTo(videoTopPanel)
+        transitionButton.click(function(e) {
+            console.log('...Transition mode clicked')
+            socket.emit("transitionMode")
+    })
+    
+    var simButton = $('<button>').css('margin-right', '10px').addClass('btn btn-default btn-mini').text('Similarity (atypical, Chord2Vec)').appendTo(videoTopPanel)
+    simButton.click(function(e) {
+            console.log('...Sim mode clicked')
+            socket.emit("simMode")
+    })
+    
+    var rippleOnButton = $('<button>').css('margin-right', '10px').addClass('btn btn-default btn-mini').text('Ripple on').appendTo(videoTopPanel)
+    rippleOnButton.click(function(e) {
+                         console.log('...Ripple on clicked')
+                         socket.emit("rippleOn")
+                         })
+    
+    if (false) {
+    var rippleOffButton = $('<button>').css('margin-right', '10px').addClass('btn btn-default btn-mini').text('Ripple off').appendTo(videoTopPanel)
+    rippleOffButton.click(function(e) {
+                          console.log('...Ripple off clicked')
+                          socket.emit("rippleOff")
+                          })
+    }
+}
 
 
 
