@@ -11,35 +11,18 @@ if (!demo) {
     $('<small>').text(videoText).appendTo(stepOne)
 //$('<'+instructionTextSize+'>').text(videoText).appendTo(stepOne)
 } else {
-    var stepOne = $('<h1>').text('ChordRipple ').css('color', highlightColor).appendTo(videoTopPanel)
+    var stepOne = $('<h1>').text('ChordRipple ').css('color', highlightColor).css('margin-left', '-2px').appendTo(videoTopPanel)
+    $('<br>').appendTo(videoTopPanel)
+
+    // Transition (typical)
+    makeToggleButton('transitionMode', 'Typical', videoTopPanel, false)
+
+    // Similarity (atypical, Chord2Vec)
+    makeToggleButton('simMode', 'Similar', videoTopPanel, true)
+
+    makeToggleButton('ripple', 'Ripple', videoTopPanel, true)
     
-    
-    var transitionButton = $('<button>').css('margin-right', '10px').addClass('btn btn-default btn-mini').text('Transition (typical)').appendTo(videoTopPanel)
-        transitionButton.click(function(e) {
-            console.log('...Transition mode clicked')
-            socket.emit("transitionMode")
-    })
-    
-    var simButton = $('<button>').css('margin-right', '10px').addClass('btn btn-default btn-mini').text('Similarity (atypical, Chord2Vec)').appendTo(videoTopPanel)
-    simButton.click(function(e) {
-            console.log('...Sim mode clicked')
-            socket.emit("simMode")
-    })
-    
-    var rippleOnButton = $('<button>').css('margin-right', '10px').addClass('btn btn-default btn-mini').text('Ripple on').appendTo(videoTopPanel)
-    rippleOnButton.click(function(e) {
-                         console.log('...Ripple on clicked')
-                         socket.emit("rippleOn")
-                         })
-    
-    if (false) {
-    var rippleOffButton = $('<button>').css('margin-right', '10px').addClass('btn btn-default btn-mini').text('Ripple off').appendTo(videoTopPanel)
-    rippleOffButton.click(function(e) {
-                          console.log('...Ripple off clicked')
-                          socket.emit("rippleOff")
-                          })
-    }
-    
+
     // add click to get default sequence
     var defaultSeq = $('<button>').css('margin-left', '205px').addClass('btn btn-default btn-mini').text('Default seq').appendTo(videoTopPanel)
     defaultSeq.click(function(e) {
@@ -47,6 +30,29 @@ if (!demo) {
                     socket.emit("defaultSeq")
                     })
     
+}
+
+function makeToggleButton(emitTag, text, parent, indent) {
+    var textSpan = $('<span>').text(text+': ').appendTo(parent)
+    if (indent) {
+        // a hack to space
+        textSpan.css('margin-left', '65px')
+    }
+
+    var toggleDiv = $('<div>').addClass('toggle-button').css('position', 'absolute').appendTo(parent)
+
+    var toggleButton = $('<button>').css('margin-right', '10px').appendTo(toggleDiv)
+
+    toggleDiv.click(function(e) {
+        if (toggleDiv.hasClass('toggle-button-selected')) {
+            console.log(emitTag + 'was ON')
+            socket.emit(emitTag, false)
+        } else {
+            console.log(emitTag + 'was OFF')
+            socket.emit(emitTag, true)
+        }
+    })
+
 }
 
 

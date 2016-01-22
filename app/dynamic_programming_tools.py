@@ -42,6 +42,9 @@ def get_probs(v, probs):
 def simple_foward_backward_gap_dist(model, before_sym, after_sym, experiment_type=None):
     # TODO: gap size only one for now
     syms = model.syms
+
+    # print 'simple_foward_backward_gap_dist'
+    # print 'syms', syms
     trans = model.trans
     if before_sym not in syms and after_sym not in syms:
         return None, None
@@ -118,6 +121,8 @@ def shortest_path(model, fixed, seq_ind=None, original_seq=None,
         sym_inds.append(seq_ind)
         sym_inds.sort()
 
+
+    print fixed, lb, ub
     # setting up the vertices
     states = {}  # for retriving the vertices according to time step
     vertices = []  # flat list of all vertices
@@ -139,6 +144,7 @@ def shortest_path(model, fixed, seq_ind=None, original_seq=None,
                 # assert if it's a tuple
                 print 'not a tuple'
                 assert not isinstance(syms_options, tuple)
+                # print "syms", len(syms), syms
                 local_states = [(i, syms.index(syms_options))]
         else:
             if nn is None:

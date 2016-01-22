@@ -1,7 +1,7 @@
 
 import os
 
-from copy import deepcopy
+from copy import copy
 import cPickle as pickle
 
 import numpy as np
@@ -29,8 +29,9 @@ PKL_FOLDER = 'data'
 
 EXPERIMENT_TYPE_STRS = ['Single-T',
                         'Single-A',
-                        'Ripple']
-TYPICAL, SIM_BUT_LESS_TYPICAL, RIPPLE = range(len(EXPERIMENT_TYPE_STRS))
+                        'Ripple',
+                        'Null']
+TYPICAL, SIM_BUT_LESS_TYPICAL, RIPPLE, NULL = range(len(EXPERIMENT_TYPE_STRS))
 EXPERIMENT_TYPE = RIPPLE
 
 from music21_chord_tools import ROMAN2LETTER_RELABELS
@@ -51,6 +52,9 @@ DISABLE_NEXT = False
 DISABLE_SIDE_RIPPLES = True
 
 
+# TODO: the change in experiment types might cause the logging to break
+
+
 class Resource(BaseNamespace, BroadcastMixin):
     def initialize(self):
         # Called after socketio has initialized the namespace.
@@ -61,6 +65,7 @@ class Resource(BaseNamespace, BroadcastMixin):
         self.ngram = retrieve_NGram()
         self.nn = retrieve_SkipGramNN()
 
+        # print self.nn.syms
         assert self.ngram.syms == self.nn.syms
 
         # self.db = Database('test')
@@ -92,10 +97,11 @@ class Resource(BaseNamespace, BroadcastMixin):
 
         # self.experiment_type = EXPERIMENT_TYPE
         # for tutorial, always start with ripple
-        self.experiment_type = RIPPLE  # int(self.ordering[0])
-
-        self.experiment_type = TYPICAL
-        self.expr_type_history = [self.experiment_type]
+        # self.experiment_type = RIPPLE  # int(self.ordering[0])
+        #
+        # self.experiment_type = TYPICAL
+        self.rec_types = [NULL]
+        self.rec_types_history = [self.rec_types]
 
         query = QueryObject(dict(data=list(self.ordering), actionKind="ordering"))
         self.index_user_action(query)
@@ -150,7 +156,7 @@ class Resource(BaseNamespace, BroadcastMixin):
         self.loop_len = None
 
         # for first chord
-        if self.experiment_type == TYPICAL:
+        if self.is_rec_type_active(TYPICAL):
             if self.symbol_type == 'roman':
                 self.start_syms = [['I'], ['i'], ['V'], ['IV'], ['I7']]
             else:
@@ -163,7 +169,8 @@ class Resource(BaseNamespace, BroadcastMixin):
             else:
                 # self.start_syms = [['a', 'C64'], ['G', 'C'], ['A', 'gb'], ['C', 'F'], ['G', 'e'], ['Bb', 'Ab'], ['E', 'G']]
                 # self.start_syms = [['C'], ['F'], ['G'], ['Am'], ['Cm'], ['B-'], ['A-']]
-                self.start_syms = [['Cm'], ['Am'], ['B-'], ['F/C'], ['G'], ['Dm7'], ['Cmaj7'], ['F#dim']]
+                # self.start_syms = [['Cm'], ['Am'], ['B-'], ['F/C'], ['G'], ['Dm7'], ['Cmaj7'], ['F#dim']]
+                self.start_syms = [['Cm'], ['Am'], ['Bb'], ['F/C'], ['G'], ['Dm7'], ['Cmaj7'], ['F#dim']]
 
 
         # set initial sequence
@@ -178,12 +185,32 @@ class Resource(BaseNamespace, BroadcastMixin):
                             ['C', 'F', 'G', 'C', 'F', 'C', 'F', 'C']]
         self.on_generate_complete_seq(self.init_seqs[0])
 
+    def is_rec_type_active(self, rec_type):
+        if rec_type in self.rec_types:
+            return True
+        else:
+            return False
+
+    def get_active_rec_type_str(self):
+        active_rec_type_str = ''
+        for rec_type in self.rec_types:
+            active_rec_type_str += EXPERIMENT_TYPE_STRS[rec_type] + '_'
+        if active_rec_type_str > 1:
+            active_rec_type_str[:-1]
+        return active_rec_type_str
+
+    def any_rec_type_active(self):
+        if TYPICAL not in self.rec_types and SIM_BUT_LESS_TYPICAL not in self.rec_types:
+            return False
+        return True
+
     # ======================
     # == database helpers ==
     # ======================
     def index_user_action(self, query, suggestions=None,
                           suggestions_above=None, attrs=None):
-        experiment_type_label = EXPERIMENT_TYPE_STRS[self.experiment_type]
+        # experiment_type_label = EXPERIMENT_TYPE_STRS[self.experiment_type]
+        experiment_type_label = self.get_active_rec_type_str()
 
         print '...index_user_action:', query.seqStr, query.actionKind, \
             query.author, query.panelId, query.itemIdx
@@ -226,14 +253,26 @@ class Resource(BaseNamespace, BroadcastMixin):
     # def on_loopLen(self, loop_len):
     #     self.loop_len = loop_len
 
-    def on_rippleOn(self):
-        self.change_experiment_type(RIPPLE)
+    def on_ripple(self, status):
+        self.change_experiment_type(RIPPLE, status)
 
-    def change_experiment_type(self, new_type):
-        self.experiment_type = new_type
-        self.expr_type_history.append(new_type)
-        print 'expr type hietory', self.expr_type_history
-        print 'EXPERIMENT type changed to:', EXPERIMENT_TYPE_STRS[self.experiment_type]
+    def add_rec_type(self, rec_type):
+        if rec_type not in self.rec_types:
+            self.rec_types.append(rec_type)
+            self.rec_types_history.append(copy(self.rec_types))
+
+    def remove_rec_type(self, rec_type):
+        if rec_type in self.rec_types:
+            self.rec_types.remove(rec_type)
+            self.rec_types_history.append(copy(self.rec_types))
+
+    def change_experiment_type(self, new_type, status):
+        if status:
+            self.add_rec_type(new_type)
+        else:
+            self.remove_rec_type(new_type)
+        print 'rec type history', self.rec_types_history
+        print 'EXPERIMENT type changed to:', self.get_active_rec_type_str()
 
     def get_previous_experiment_mode(self):
         # mode gives transition versus sim
@@ -253,11 +292,11 @@ class Resource(BaseNamespace, BroadcastMixin):
     def on_defaultSeq(self):
         self.on_generate_complete_seq(self.init_seqs[0])
 
-    def on_transitionMode(self):
-        self.change_experiment_type(TYPICAL)
+    def on_transitionMode(self, status):
+        self.change_experiment_type(TYPICAL, status)
 
-    def on_simMode(self):
-        self.change_experiment_type(SIM_BUT_LESS_TYPICAL)
+    def on_simMode(self, status):
+        self.change_experiment_type(SIM_BUT_LESS_TYPICAL, status)
 
     def on_inputSave(self, text):
         # log add automatically saves upon seeing type "save"
@@ -660,6 +699,7 @@ class Resource(BaseNamespace, BroadcastMixin):
 
     def get_similar_chords(self, sym, topn):
         similars = self.nn.most_similar(sym, topn=topn)
+        print self.nn.syms
         if similars is None:
             return
         sims = [s[0] for s in similars]
@@ -781,9 +821,19 @@ class Resource(BaseNamespace, BroadcastMixin):
             after_sym = original_seq[sym_ind + 1]
             if after_sym not in self.syms:
                 after_sym = None
+
+        # sorted_probs, sorted_syms = \
+        #     simple_foward_backward_gap_dist(self.model, before_sym, after_sym,
+        #                                     self.experiment_type)
+
+        if self.is_rec_type_active(TYPICAL):
+            relevant_rec_type = TYPICAL
+        else:
+            relevant_rec_type = None
+
         sorted_probs, sorted_syms = \
-            simple_foward_backward_gap_dist(self.model, before_sym, after_sym,
-                                            self.experiment_type)
+                simple_foward_backward_gap_dist(self.model, before_sym, after_sym, relevant_rec_type)
+
 
         if sorted_syms is not None and len(sorted_syms) > 10:
             for i in range(10):
@@ -791,7 +841,8 @@ class Resource(BaseNamespace, BroadcastMixin):
             ind = sorted_syms.index('C')
             print "what is prob for C?", np.exp(sorted_probs[ind]), ind
 
-        if sorted_syms is None and sym_ind == 0 and self.experiment_type == TYPICAL:
+        # TODO: this is a hack for the beginning when the dynamic programming doesn't take "starting prior" into consideration
+        if sorted_syms is None and sym_ind == 0 and self.is_rec_type_active(TYPICAL):
             sorted_syms = [s[0] for s in self.start_syms]
 
         n_subs = factor*self.n_similar
@@ -817,7 +868,9 @@ class Resource(BaseNamespace, BroadcastMixin):
             else:
                 tags['source'] = 'sim'
 
-            if sorted_syms is not None:
+            # if sorted_syms is not None:
+            # TODO: hack for now, fix sorted_syms later
+            if sorted_syms is not None and ss in sorted_syms:
                 # print len(sorted_syms), ss
                 # print sorted_syms
                 tags['context_rank'] = sorted_syms.index(ss)
@@ -833,25 +886,34 @@ class Resource(BaseNamespace, BroadcastMixin):
         return suggestion_items
 
     def generate_singleton_subs(self, sym_ind, original_seq, factor=1):
+        if not self.any_rec_type_active():
+            return None, None
+
         original_sym = original_seq[sym_ind]
         print '...generate substitutions based on similarity'
         # generate substitutions based on similarity
-        if self.experiment_type != TYPICAL:  # and sym_ind == 0:
+        # if self.experiment_type != TYPICAL:  # and sym_ind == 0:
+
+        if self.is_rec_type_active(SIM_BUT_LESS_TYPICAL):
             sims = self.get_similar_chords(original_sym, self.n_similar*2)
-        elif self.experiment_type != TYPICAL:
-            sims = self.get_similar_chords(original_sym, self.n_similar)
+        # elif self.experiment_type != TYPICAL:
+        #     sims = self.get_similar_chords(original_sym, self.n_similar)
         else:
             sims = None
         print "sims", sims
         # generate substitutions based on context
-        if self.experiment_type == TYPICAL:
+        if self.is_rec_type_active(TYPICAL):
             factor = 2
+
         # sorted_syms is for in case needed more?
         # if not typical, then for first chord, only use sim
-        if self.experiment_type != TYPICAL:  # and sym_ind == 0:
-            sorted_syms = None
-            subs = None
-        else:
+
+        # if self.experiment_type != TYPICAL:  # and sym_ind == 0:
+        # TODO: if both typical and sim are active, sim doesn't use sorted_syms, may cause problems for later functions that use this
+        sorted_syms = None
+        subs = None
+
+        if self.is_rec_type_active(TYPICAL):
             sorted_syms, subs = self.generate_subs_from_context(sym_ind, original_seq,
                                                             factor=factor)
         print "subs by context", subs
@@ -862,7 +924,10 @@ class Resource(BaseNamespace, BroadcastMixin):
             subs.extend(sims)
         # subs first, sims next
         print "all collected singletons", subs
-        assert len(subs) == 4 or subs is None or len(subs) == 0
+        if self.is_rec_type_active(TYPICAL) and self.is_rec_type_active(SIM_BUT_LESS_TYPICAL):
+            assert len(subs) == 8 or subs is None or len(subs) == 0
+        elif self.is_rec_type_active(TYPICAL) or self.is_rec_type_active(SIM_BUT_LESS_TYPICAL):
+            assert len(subs) == 4 or subs is None or len(subs) == 0
 
         # sorted_syms is for in case needed more?
         # not currently used in the calling function
@@ -962,7 +1027,6 @@ class Resource(BaseNamespace, BroadcastMixin):
             # if sym_ind == len(original_seq) - 1 or nextSymIsEmpty:
             # print 'sym_ind', sym_ind, CHORD_LEN, nextSymIsEmpty
 
-
             if sym_ind < CHORD_LEN - 1 or nextSymIsEmpty:
                 ss, sinds = self.generate_next(original_sym, sym_ind, raw_original_seq)
                 if ss is None:
@@ -973,22 +1037,24 @@ class Resource(BaseNamespace, BroadcastMixin):
                     print s, sinds[i]
 
         # bottom, side ripples
-        if self.experiment_type == RIPPLE and not DISABLE_SIDE_RIPPLES:
+        if self.is_rec_type_active(RIPPLE) and not DISABLE_SIDE_RIPPLES:
             suggestion_items = self.generate_side_ripples(sym_ind, original_seq)
             self.suggestions.add(suggestion_items)
 
         # above, single sims and subs by context
         sorted_syms, subs = self.generate_singleton_subs(sym_ind, raw_original_seq)
-        suggestion_items = self.make_single_sub_suggestion_items(sym_ind, raw_original_seq, subs, sorted_syms)
+        print '...generate_alternatives, sorted_syms', sorted_syms
 
         if subs is None:
             seqs, inds = self.suggestions_above.get_seqs_inds()
             self.emit('updateChordSuggestionsAbove', seqs, inds)
             return
+        else:
+            suggestion_items = self.make_single_sub_suggestion_items(sym_ind, raw_original_seq, subs, sorted_syms)
 
         # generate ripples for the single changes
         print '...subs', subs
-        if self.experiment_type == RIPPLE:
+        if self.is_rec_type_active(RIPPLE):
             seq_subs, seq_inds = self.generate_ripples(raw_original_seq, sym_ind,
                                                        subs, all_sims=ALL_SIMS)
         else:
