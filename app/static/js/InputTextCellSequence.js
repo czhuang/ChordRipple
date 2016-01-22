@@ -148,7 +148,7 @@ function LineTextObject(inputText, durations, activeIdx) {
 }
 
 function InputTextCellSequence(grandparentId, cellType, videoScore, socket, width, author,
-                               panelId, itemIdx) {
+                               panelId, itemIdx, recType) {
     // the parent should be the immediate parent
     // so that can loop through for example to get which is in focus
     this.parentId = grandparentId + '_child'
@@ -171,6 +171,9 @@ function InputTextCellSequence(grandparentId, cellType, videoScore, socket, widt
     this.author = author
     this.panelId = panelId
     this.itemIdx = itemIdx
+
+    // recommendation type
+    this.recType = recType
 
     this.socket = socket
     this.setSocket = function(socket) {
@@ -213,9 +216,11 @@ function InputTextCellSequence(grandparentId, cellType, videoScore, socket, widt
     this.makeCell = function(editable, i, width) {
         var id = this.parentId + i
 //        var cell = $('<input>').addClass('text').attr('id', id).css({"font-family":"monospace", "font-size":16, "margin-top":8})
-        var cell = $('<'+this.cellType+'>').addClass('text').attr('id', id).css({"font-family":"monospace", "font-size":16, "margin-top":8})
+        var cell = $('<'+this.cellType+'>').addClass('text').attr('id', id).css({"font-family":"monospace", "font-size":16})
 
-cellType
+        //cell.css("margin-bottom", '1px')
+
+
 //      //.width(widthPercent).appendTo(parent);
         if (width === undefined) {
             cell.css({"width":'50px'})

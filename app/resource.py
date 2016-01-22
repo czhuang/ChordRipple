@@ -51,9 +51,11 @@ ALL_SIMS = True
 DISABLE_NEXT = False
 DISABLE_SIDE_RIPPLES = True
 
+DISABLE_LOGGING_CHECK = True
+
 
 # TODO: the change in experiment types might cause the logging to break
-
+# TODO: need to check all the places where DISABLE_LOGGING_CHECK is put
 
 class Resource(BaseNamespace, BroadcastMixin):
     def initialize(self):
@@ -1420,10 +1422,11 @@ class Resource(BaseNamespace, BroadcastMixin):
                 item = self.suggestions.retrieve_item_at(ind, query)
 
             # for debugging
-            if item is None:
-                print 'Error: can not retrieve suggestion item', \
-                    query.activeIdx, query.seqStr
-                assert False
+            if not DISABLE_LOGGING_CHECK:
+                if item is None:
+                    print 'Error: can not retrieve suggestion item', \
+                        query.activeIdx, query.seqStr
+                    assert False
 
             attrs = dict(suggestionItem=item)
         return attrs

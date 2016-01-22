@@ -515,7 +515,7 @@ $('<small>').text(chordInstructText).appendTo(stepTwo)
 
 
 
-var inputTextParent = $("<p>").attr('id', parentId).appendTo(parent)
+var inputTextParent = $("<p>").attr('id', parentId).css('margin-top', '12px').appendTo(parent)
 //inputTextParent.css({'position': 'absolute'})
 var parentPositionTop = parent.position().top
 var desiredPositionTop = 437
@@ -643,7 +643,7 @@ function updateSaveEntry() {
     textSpan.text(lineText).attr('display', 'inline').appendTo(p)
     textSpan.css({'padding-right': '10px'})
 
-    var button = $('<button>').addClass('btn btn-info btn-mini').text('Use').appendTo(p)
+    var button = $('<button>').addClass('btn btn-info btn-xs').text('Use').appendTo(p)
     button.click(function(e) {
         var originalText = inputText.val()
         inputText.val(lineText)
@@ -691,6 +691,9 @@ function createSuggestions(parent, id) {
 //        console.log('creating suggestions', 'suggestion'+id+i)
         var p = $('<p>').attr('id', 'suggest'+id+i)
         p.css('margin-bottom', "3px")
+        if (i==0) {
+            p.css('margin-top', '12px')
+        }
         if (id == 'above') {
             var inputTextTemp = $('#inputTextParent')
 //            console.log('createSuggestions', id, inputTextTemp)
@@ -781,6 +784,20 @@ function makeSuggestionItem(chordSeqsAndFormat, i, idStr) {
 //    parentStr = '#suggest'+idStr
     parentStr = 'suggest'+idStr
     parent = $('#'+parentStr)
+
+    // count if is ripple, if ripple, then set margin to be -2px, otherwise 3px
+    var changeCount = 0
+    for (var i=0; i<chordSeqsAndFormat.length; i++) {
+        if (chordSeqsAndFormat[i][1]) {
+            changeCount += 1
+        }
+    }
+    if (changeCount > 1) {
+        parent.css('margin-bottom', '-2px')
+    } else {
+        parent.css('margin-bottom', '3px')
+    }
+
 //    console.log('makeSuggestionItem', parentStr, i, chordSeqsAndFormat)
     var suggestionInputText = new InputTextCellSequence(parentStr, 'div', videoScore, socket, WIDTH,
                                                         'machine', idStr, i)
@@ -925,7 +942,7 @@ function makeCompleteSeqFromChordSeqsAndFormat(chordSeqsAndFormat) {
 //}
 
 function makeUseButton(parent, lineText, chordSeqsAndFormat, i, idStr){
-    var button = $('<button>').addClass('btn btn-info btn-mini').text('Use').appendTo(parent)
+    var button = $('<button>').addClass('btn btn-info btn-xs').text('Use').appendTo(parent)
     button.click(function(e) {
         tempScrollTop = $(window).scrollTop();
 
@@ -1015,7 +1032,7 @@ function emitPlaySubseq(text, chordSeqsAndFormat, author, i, idStr, log, actionA
 
 // associated with fix text
 function makePlayButton(parent, text, author, i, idStr, doAppend) {
-    var btn = $('<button>').addClass('btn btn-mini').text('Play')
+    var btn = $('<button>').addClass('btn btn-xs').text('Play')
     if (doAppend) {btn.appendTo(parent)};
     btn.click(function(e) {
         console.log('play text button clicked', text)
@@ -1042,7 +1059,8 @@ function makePlayChangeButton(parent, text, chordSeqsAndFormat, author, i, idStr
     else {
         playLabel = 'Play'
     }
-    var btn = $('<button>').addClass('btn btn-mini').text(playLabel).css('border-radius', '8px').appendTo(parent);
+    //btn-mini
+    var btn = $('<button>').addClass('btn btn-xs').text(playLabel).css('border-radius', '8px').appendTo(parent);
     btn.click(function(e) {
         console.log('playSubseq button clicked', i)
 
