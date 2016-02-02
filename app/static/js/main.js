@@ -780,7 +780,7 @@ function updateSuggestions(subChords, subInds, suggestionTypes, id) {
 }
 
 
-function makeSuggestionItem(chordSeqsAndFormat, i, idStr) {
+function makeSuggestionItem(chordSeqsAndFormat, idx, idStr) {
 //    parentStr = '#suggest'+idStr
     parentStr = 'suggest'+idStr
     parent = $('#'+parentStr)
@@ -855,16 +855,16 @@ function makeSuggestionItem(chordSeqsAndFormat, i, idStr) {
 //        span.val(spanText)
 
     }
-    makeUseButton(parent, lineText, chordSeqsAndFormat, i, idStr)
-//    makePlayButton(parent, lineText, 'machine', i, idStr, true)
-    makePlayChangeButton(parent, lineText, chordSeqsAndFormat, 'machine', i, idStr)
+    makeUseButton(parent, lineText, chordSeqsAndFormat, idx, idStr)
+//    makePlayButton(parent, lineText, 'machine', idx, idStr, true)
+    makePlayChangeButton(parent, lineText, chordSeqsAndFormat, 'machine', idx, idStr)
     // the last true value is for playContext which means also play context
-    makePlayChangeButton(parent, lineText, chordSeqsAndFormat, 'machine', i, idStr, true)
+    makePlayChangeButton(parent, lineText, chordSeqsAndFormat, 'machine', idx, idStr, true)
     return suggestionInputText
 }
 
 
-function makeSuggestionItemBack(chordSeqsAndFormat, i, idStr) {
+function makeSuggestionItemBack(chordSeqsAndFormat, idx, idStr) {
     parentStr = '#suggest'+idStr
     parent = $(parentStr)
     // console.log('makeSuggestionItem', parentStr)
@@ -899,9 +899,9 @@ function makeSuggestionItemBack(chordSeqsAndFormat, i, idStr) {
             //}
         }
     }
-    makeUseButton(parent, lineText, chordSeqsAndFormat, i, idStr)
-    makePlayButton(parent, lineText, 'machine', i, idStr, true)
-    makePlayChangeButton(parent, lineText, chordSeqsAndFormat, 'machine', i, idStr)
+    makeUseButton(parent, lineText, chordSeqsAndFormat, idx, idStr)
+    makePlayButton(parent, lineText, 'machine', idx, idStr, true)
+    makePlayChangeButton(parent, lineText, chordSeqsAndFormat, 'machine', idx, idStr)
 };
 
 // temporarily disabled
@@ -1061,8 +1061,9 @@ function makePlayChangeButton(parent, text, chordSeqsAndFormat, author, i, idStr
     }
     //btn-mini
     var btn = $('<button>').addClass('btn btn-xs').text(playLabel).css('border-radius', '8px').appendTo(parent);
+    btn.attr('id', playLabel.split(" ").join("") + i)
     btn.click(function(e) {
-        console.log('playSubseq button clicked', i)
+        console.log('playSubseq button clicked', i, btn.attr('id'))
 
         emitPlaySubseq(text, chordSeqsAndFormat, author, i, idStr, true, 'user', playContext)
 //        socket.emit("playSubseq", chordSeqsAndFormat, author, i, idStr)
