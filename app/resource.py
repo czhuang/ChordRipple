@@ -568,17 +568,18 @@ class Resource(BaseNamespace, BroadcastMixin):
             chords = chords[:] + chords[:]
             durs = durs[:-1] + [durs[-1]+self.unit_dur*0.2] + durs[:]
 
-        midi_notes = self.make_proxy_midi_notes(chords, durs)
-        return midi_notes
+        midi_notes, onsets = self.make_proxy_midi_notes(chords, durs)
+        return midi_notes, onsets
 
 
     def make_proxy_midi_notes(self, chords, durs):
         if not len(chords):
-            return []
+            return [], []
         if not isinstance(chords[0], list):
             chords = [chords]
         midi_notes = []
         running_time = 0.0
+        onsets = []
         for i, notes in enumerate(chords):
             onset = running_time
             if i == 0:
@@ -587,12 +588,13 @@ class Resource(BaseNamespace, BroadcastMixin):
                 dur = durs[-1]
             else:
                 dur = durs[i]
+            onsets.append(onset)
             for note in notes:
                 midi_note = {'pitch': note, 'onset': onset,
                              'offset': running_time+dur}
                 midi_notes.append(midi_note)
             running_time += dur
-        return midi_notes
+        return midi_notes, onsets
 
     # def on_(self, chord_changes, author, activeIdx,
     #                   suggestPanel, original_query, log=True):
@@ -638,6 +640,7 @@ class Resource(BaseNamespace, BroadcastMixin):
             if end_ind + 1 < CHORD_LEN:
                 end_ind += 1
             print start_ind, end_ind
+            original_query["startEndIndices"] = (start_ind, end_ind)
             
             syms = [ chord_changes[i][0] for i in range(start_ind, end_ind+1) ]
             durs = [ query_durations[i] for i in range(start_ind, end_ind+1) ]
@@ -687,7 +690,7 @@ class Resource(BaseNamespace, BroadcastMixin):
         if len(durs) != len(syms):
             durs = [self.unit_dur] * len(syms)
 
-        midi_notes = self.make_proxy_midi_notes(notes, durs)
+        midi_notes, chord_onsets = self.make_proxy_midi_notes(notes, durs)
 
         # for entire sequence
         # midi_notes = self.make_proxy_midi_notes_from_query(query)
@@ -695,7 +698,7 @@ class Resource(BaseNamespace, BroadcastMixin):
         # sending the original query back so that have context
         # TODO: make all communication to be query objects
         # with more fields
-        self.emit('playSubseq', midi_notes, original_query)
+        self.emit("playSubseq", midi_notes, chord_onsets, original_query)
         return notes
 
 
@@ -1445,7 +1448,7 @@ class Resource(BaseNamespace, BroadcastMixin):
 
         if len(query.seqStr) == 0:
             # TODO: why need to emit playSubseq, to set somethings to empty?
-            self.emit("playSubseq", [])
+            self.emit("playSubseq", [], [])
             self.clear_suggestions()
             return
 
@@ -1514,10 +1517,10 @@ class Resource(BaseNamespace, BroadcastMixin):
                     else:
                         durs = [self.unit_dur]
                     print 'durs', durs
-                    midi_notes = self.make_proxy_midi_notes(notes, durs)
+                    midi_notes, chord_onsets = self.make_proxy_midi_notes(notes, durs)
                     print 'midi_notes', midi_notes
 
-                    self.emit("playSubseq", midi_notes, original_query)
+                    self.emit("playSubseq", midi_notes, chord_onsets, original_query)
 
         self.clear_suggestions()
 

@@ -66,9 +66,9 @@ $(document).ready(function() {
     //playMidiSeqDebounced(noteSeqs, durs)
   });
 
-  socket.on("playSubseq", function(notes, query) {
+  socket.on("playSubseq", function(notes, chordOnsets, query) {
     playingSubseq = true
-    console.log('playSubseq', notes)
+    console.log('playSubseq', notes, chordOnsets, query)
 
     if (looping) {
         // don't do anything
@@ -108,7 +108,32 @@ $(document).ready(function() {
 //        playbackStopTime = videoScore.getTimeFromEventIdx(endChordIdx)
 //        console.log('...playSubseq offsetChordIdx, offsetTime', offsetChordIdx, offsetTime)
 //        console.log('...playSubseq endChordIdx, playbackStopTime', endChordIdx, playbackStopTime)
+        // when does subseq to be played switch from playing original to suggestion and vice versa
+        if (query != undefined) {
+            var chordSeqsAndFormat = query.chordSeqsAndFormat
+            var startEndIndices = query.startEndIndices
+            console.log('playSubseq, chordOnsets, startEndIndices', chordOnsets.length, startEndIndices)
+            if (startEndIndices != undefined) {
+                var jumpPoints = []
+                var chordIdx = 0
+                for (var i=startEndIndices[0]; i<startEndIndices[1]; i++) {
+                    if (!chordSeqsAndFormat[i][1] && i+1<chordSeqsAndFormat.length && chordSeqsAndFormat[i+1][1]) {
+                        // switched from no change to change, that is switch from input to suggestion
+                        jumpPoints.push(['ToSuggestion', chordOnsets[chordIdx]])
+                    } else if (chordSeqsAndFormat[i][1] && i+1<chordSeqsAndFormat.length && !chordSeqsAndFormat[i+1][1]) {
+                        // switched from change to no changege, that is switch from suggestion to input
+                        jumpPoints.push(['ToInput', chordOnsets[chordIdx]])
+                    }
+                    chordIdx += 1
+                } // for
+                query.jumpPoints = jumpPoints
+                console.log('jumpPoints', jumpPoints)
+            } // if
 
+        } // if
+            
+
+        
         queryState = query
         var loop = false
         updateMidiSliderFlag = false
@@ -117,6 +142,8 @@ $(document).ready(function() {
     }
 
   });
+                  
+                  
 
   socket.on("ordering", function(order) {
     ordering = order
@@ -185,6 +212,23 @@ $(document).ready(function() {
    $('#playbackControls').hide()
 
 }); //end for document ready
+
+
+// helper functions
+//
+//function isPlayContext(chordSeqsAndFormat, notes) {
+//    var changeCount = 0
+//    for (var i=0; i<chordSeqsAndFormat.length; i++) {
+//        if (chordSeqsAndFormat[i][1]) {
+//            changeCount += 1
+//        }
+//    }
+//    var playContext = changeCount != notes.length
+//    console.log('isPlayContext', changeCount, notes.length, playContext)
+//    return playContext
+//}
+
+
 
 
 // setup UI
@@ -1053,6 +1097,8 @@ function updateSong(text, play, author, idStr, i) {
 
 function makePlayChangeButton(parent, text, chordSeqsAndFormat, author, i, idStr, playContext) {
 //    var btn = $('<button>').addClass('btn btn-mini').text('Play bold').css('border-radius', '8px').appendTo(parent);
+    
+    //TODO: should be able to uncover playContext from chordSeqsAndFormat
     if (playContext) {
         playLabel = 'Play context'
     }

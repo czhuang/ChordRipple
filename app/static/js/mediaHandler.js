@@ -399,10 +399,50 @@ function updateSongWidgetsToCurrentPlayTime(currentMidiPlayTime){
 //    console.log('queryState.author', queryState.author, 'queryState.actionKind', queryState.actionKind)
 //    console.log('userPlayedSeq', userPlayedSeq)
 
-    var machinePlayedUse = queryState.actionKind == 'use'
-
     // here is where the playhead color gets updated
-    if (!userFocusedCell || firstUpdateForUserFocusedCell || userPlayedSeq || machinePlayedUse) {
+    var songDuration = ticksToSecond(song.durationTicks)
+    console.log('updateSongWidgetsToCurrentPlayTime, songDuration', songDuration)
+    var machinePlayedUse = queryState.actionKind == 'use'
+    var jumpPoints = queryState.jumpPoints
+    if (userPlayedSeq && queryState.jumpPoints != undefined) {
+        console.log('---userPlayedSeq, queryState.jumpPoints', queryState.jumpPoints)
+        console.log('getActiveInputText() === inputText', getActiveInputText() === inputText)
+        var nextOnsetBoundary = songDuration
+        var previousOnsetBoundary = 0
+        for (var j=0; j<jumpPoints.length; j++) {
+            if (j+1 < jumpPoints.length) {
+                nextOnsetBoundary = jumpPoints[j+1][1]
+            }
+            if (currentMidiPlayTime > previousOnsetBoundary && currentMidiPlayTime < jumpPoints[j][1]) {
+                if (jumpPoints[j][0] === 'ToSuggestion') {
+                    console.log('Before ToSuggestion, currentMidiPlayTime', currentMidiPlayTime, inputText)
+                    inputText.updatePlaybackColorCell(currentMidiPlayTime + offset)
+                    break
+
+                } else if (jumpPoints[j][0] === 'ToInput') {
+                    console.log('Before ToInput, currentMidiPlayTime', currentMidiPlayTime, activeInputText)
+                    activeInputText.updatePlaybackColorCell(currentMidiPlayTime + offset)
+                    break
+
+                }
+            } else if (currentMidiPlayTime > jumpPoints[j][1] && currentMidiPlayTime <= nextOnsetBoundary) {
+                if (jumpPoints[j][0] === 'ToSuggestion') {
+                    activeInputText.updatePlaybackColorCell(currentMidiPlayTime + offset)
+                    console.log('after ToSuggestion, currentMidiPlayTime', currentMidiPlayTime, activeInputText)
+                    break
+                } else if (jumpPoints[j][0] === 'ToInput') {
+                    inputText.updatePlaybackColorCell(currentMidiPlayTime + offset)
+                    console.log('after ToInput, currentMidiPlayTime', currentMidiPlayTime, inputText)
+                    break
+                }
+            }
+            console.log("previous, present, next", previousOnsetBoundary, jumpPoints[j][1], nextOnsetBoundary)
+            if (currentMidiPlayTime >= jumpPoints[j][1]) {
+                previousOnsetBoundary = currentMidiPlayTime
+            }
+        } // for
+        firstUpdateCellColor = false
+    } else if (!userFocusedCell || firstUpdateForUserFocusedCell || userPlayedSeq || machinePlayedUse) {
         activeInputText.updatePlaybackColorCell(currentMidiPlayTime + offset)
         firstUpdateCellColor = false
     } else {

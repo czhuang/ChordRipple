@@ -280,12 +280,13 @@ function InputTextCellSequence(grandparentId, cellType, videoScore, socket, widt
 //        console.log('updatePlaybackColorCell', currentTime)
         var playIdx = this.videoScore.getEventIdxFromTime(currentTime)
         var lastIdx = this.getLastNonEmptyCellIdx()
-//        console.log('playIdx, lastIdx', playIdx, lastIdx)
+        console.log('playIdx, lastIdx', playIdx, lastIdx)
         // if already last idx, don't move
         if (playIdx <= lastIdx) {
             var cells = this.getCells()
+
+            console.log('...updatePlaybackColorCell playIdx', playIdx, 'cells.length', cells.length)
             // pinkish color
-//            console.log('...updatePlaybackColorCell playIdx', playIdx, 'cells.length', cells.length)
             cells[playIdx].css('background', '#FF5880')
             this.resetCellColorExceptIdx(playIdx)
         }
