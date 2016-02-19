@@ -71,11 +71,14 @@ def get_segmented_songs(seqs=None, min_len=5):
     subseqs = []
     for seq in seqs:
         subseq = []
-        for s in seq:
+        for i, s in enumerate(seq):
             subseq.append(s)
             if (s == 'I' or s == 'i') and len(subseq) > min_len:
                 subseqs.append(subseq)
                 subseq = []
+                # if i + 1 < len(seq) and (seq[i+1] != 'I' or seq[i+1] != 'i'):
+                #     subseq.append(s)
+
     # with open('subseqs.txt', 'w') as p:
     #     lines = ''
     #     for seq in subseqs:
@@ -150,38 +153,6 @@ def pickle_train_test_seqs():
     with open(fpath, 'wb') as p:
         pickle.dump(test_data, p)
     save_as_text(fpath, test_seqs)
-
-
-def save_as_text(fpath, seqs):
-    seqs_strs = []
-    for seq in seqs:
-        seq_str = ', '.join(seq) + '\n'
-        seqs_strs.append(seq_str)
-    fpath = os.path.splitext(fpath)[0] + '.txt'
-    print 'save fname:', fpath
-    with open(fpath, 'w') as p:
-        p.writelines(seqs_strs)
-
-
-def read_text(fpath):
-    print fpath
-    with open(fpath, 'r') as p:
-        seqs = p.readlines()
-    print '# of seqs:', len(seqs)
-    return seqs
-
-
-def read_seqs(fpath):
-    lines = read_text(fpath)
-    seqs = []
-    for line in lines:
-        if ', ' in line:
-            syms = line.strip().split(', ')
-        else:
-            syms = line.strip().split(' ')
-        assert ' ' not in syms
-        seqs.append(syms)
-    return seqs
 
 
 def check_train_test_texts():
@@ -266,6 +237,19 @@ def test_get_raw_data():
     print 'count_end_or_start_with_C:', count_end_or_start_with_C
 
 
+def save_segmented_songs():
+    configs = get_configs()
+    configs['corpus'] = 'rock'
+    configs['use_letternames'] = False
+
+    seqs = load_songs(configs)
+
+    seqs = get_segmented_songs(seqs, min_len=5)
+    print '# of segmented seqs:', len(seqs)
+    fpath = os.path.join('data', 'rock-rns-segmented.txt')
+    save_as_text(fpath, seqs)
+
+
 def convert_to_pickle(fname):
     fpath = os.path.join('data', fname)
     seqs = read_seqs(fpath)
@@ -275,6 +259,38 @@ def convert_to_pickle(fname):
     pickle_fpath = os.path.join('data', pickle_fname)
     with open(pickle_fpath, 'wb') as p:
         pickle.dump(seqs, p)
+
+
+def save_as_text(fpath, seqs):
+    seqs_strs = []
+    for seq in seqs:
+        seq_str = ', '.join(seq) + '\n'
+        seqs_strs.append(seq_str)
+    fpath = os.path.splitext(fpath)[0] + '.txt'
+    print 'save fname:', fpath
+    with open(fpath, 'w') as p:
+        p.writelines(seqs_strs)
+
+
+def read_text(fpath):
+    print fpath
+    with open(fpath, 'r') as p:
+        seqs = p.readlines()
+    print '# of seqs:', len(seqs)
+    return seqs
+
+
+def read_seqs(fpath):
+    lines = read_text(fpath)
+    seqs = []
+    for line in lines:
+        if ', ' in line:
+            syms = line.strip().split(', ')
+        else:
+            syms = line.strip().split(' ')
+        assert ' ' not in syms
+        seqs.append(syms)
+    return seqs
 
 
 if __name__ == '__main__':
@@ -293,5 +309,8 @@ if __name__ == '__main__':
     # get_train_test_data()
 
     # test_get_raw_data()
-    fname = 'rock-lettername-originalKey.txt'
-    convert_to_pickle(fname)
+
+    # fname = 'rock-lettername-originalKey.txt'
+    # convert_to_pickle(fname)
+
+    save_segmented_songs()

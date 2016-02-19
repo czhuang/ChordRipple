@@ -3,9 +3,13 @@ import os
 from collections import OrderedDict
 from copy import copy
 
-TEST_FLAG = True
+import cPickle as pickle
+
+TEST_FLAG = False
 TEST_PATH = 'rs_harmony_test'
 ALL_PATH = 'rs200_harmony'
+
+# GLOBAL_COUNT_UNPARSABLE_SEQS = 0
 
 
 def get_rock_corpus_fpaths():
@@ -42,7 +46,6 @@ def parse_chords(fpath):
     comments = OrderedDict()
     sections = OrderedDict()
     file_content_ordering = []
-    song_ordering = []
     key_sig = None
     time_sig = None
     for i, line in enumerate(lines):
@@ -53,6 +56,7 @@ def parse_chords(fpath):
             file_content_ordering.append(label)
         # if song-structure line that has optional key and timesig
         elif line.startswith('S:'):
+            song_ordering = []
             items = line.split()
             for item in items[1:]:
                 item = item.strip()
@@ -64,6 +68,8 @@ def parse_chords(fpath):
                     time_sig = item[1:-1]
                 else:
                     assert False, "Case should not exist..."
+            sections['S'] = song_ordering
+            file_content_ordering.append('S')
         else:
             if ':' not in line:
                 print line
@@ -145,71 +151,172 @@ def parse_chords(fpath):
     return song
 
 
-class Chord(object):
-    def __init__(self, name, dur, held_from_before):
-        self._name = name
-        self._dur = dur
-        self.held_from_before = held_from_before
-
-
 class Rule(object):
     def __init__(self, label, bars, rules, time_sig):
         self._name = label
-        self._bars = bars
-        self.rules_ref = rules
-        self.time_sig = time_sig
+        self._compact_bars = bars
+        self._rules_ref = rules
+        self._time_sig = time_sig
+        self._referenced_labels = self.collect_referenced_labels()
 
-        self._expanded_bars = self.expand_bars()
-        self._expanded_chords = self.expand_to_chords()
-        self._expanded_chord_strs = self.make_chord_strs()
+    def expand(self):
+        # TODO: hack, consider 'S' rule case too
+        # the parse of 'S' is currently missing the '$'
+        # S ['Ln', 'Vr1', 'Ch', 'Ln*2', 'Ch', 'Vr2', 'Ch*2', 'Ou']
+        if self._name != 'S':
+            print '---expanding', self._name
+            self._bars = self.expand_to_phrases()
+            self._chords = self.expand_to_chords()
+            self._beats, self._beats_w_onsets = self.expand_to_beats()
 
-    def expand_bars(self):
-        # still list of bar lists
-        expanded_bars = []
-        for bar in self._bars:
-            if bar[0] == '$':
+    def collect_referenced_labels(self):
+        labels = set()
+        for i, bar in enumerate(self._compact_bars):
+            if len(bar) > 0 and bar[0][0] == '$':
                 label = bar[0][1:]
-                expanded_bars.extend(copy(self.rules_ref[label]))
-            else:
+                if label not in labels:
+                    labels.add(label)
+        return labels
+
+    @property
+    def referenced_labels(self):
+        return self._referenced_labels
+
+    @property
+    def bars(self):
+        return self._bars
+
+    @property
+    def beats(self):
+        return self._beats
+    
+    @property
+    def beats_w_onsets(self):
+        return self._beats_w_onsets
+    
+    def expand_to_phrases(self):
+        # for example if "Vr1: [4/4] I . . IV | $A I . . V | $B I . . IV | $A $B"
+        # expand out the rules
+        # still list of bar lists
+        #print 'expand_to_phrases:', self._compact_bars
+        expanded_bars = []
+        beginning_with_rest = True
+        for i, bar in enumerate(self._compact_bars):
+            if not len(bar) == 1 or bar[0] != 'R':
+                beginning_with_rest = False
+            if bar[0][0] == '$':
+                label = bar[0][1:]
+                # print 'label to expand', label
+                expanded_bars.extend(copy(self._rules_ref[label].bars))
+            elif not beginning_with_rest:
                 expanded_bars.append(bar)
         return expanded_bars
 
     def expand_to_chords(self):
-        expanded_chords = []
-        for bar in self._expanded_bars:
-            expanded_bar, time_sig = self.expand_bar_to_chords(bar, time_sig)
-            expanded_chords.extend(expanded_bar)
+        #print 'expand_to_chords:', self._bars
+        expanded_chords = [None]
+        time_sig = self._time_sig
+        for bars in self._bars:
+            expanded_bar, new_time_sig = self.expand_bar_to_chords(bars, time_sig, expanded_chords[-1])
+            if expanded_bar is not None:
+                expanded_chords.extend(expanded_bar)
+                time_sig = new_time_sig
+        expanded_chords.pop(0)
         return expanded_chords
 
-    def expand_bar_to_chords(self, bars, time_sig):
-        chords = []
-        for bar in bars:
-            if '/' in bar[0]:
-                time_sig = bar[1:-1]
-                bar = bar[1:]
+    def is_time_sig(self, string):
+        # [4/4]
+        time_sig = string[1:-1]
+        try:
+            pos = string.index('/')
+        except ValueError:
+            return False, time_sig
+        if not string[1:pos].isdigit() or not string[pos+1:len(string)-1].isdigit():
+            return False, time_sig
+        return True, time_sig
 
-            num_beats = time_sig.split('/')[0]
+    def is_key_change(self, string):
+        if string[0] != '[' or string[-1] != ']' or '/' in string:
+            return False, None
+        key = string[1:-1]
+        for ch in key:
+            if ch.isdigit():
+                return False, key
+        return True, key
 
-            # for a bar with more than 2 item will most likely have '.'
-            durs = []
-            if len(bar) <= 2 and num_beats == 4:
-                dur_unit = num_beats / len(bars)
-                assert num_beats % len(bars) == 0
-                durs = [dur_unit] * len(bars)
+    def expand_bar_to_chords(self, bar, time_sig, last_chord):
+        # TODO: assumes the time signature is in the position
+        # print 'expand_bar_to_chords:', time_sig, bar
+        chords = [last_chord]
+        beat_pos = 1
 
-            dur_previous = None
-            for i, ch in enumerate(bar):
-                if len(durs) > 0:
-                    dur = durs[i]
-                elif i + 1 < len
-                ch = Chord(ch, dur_unit, hel)
+        num_events = len(bar)
+        for i, ch in enumerate(bar):
+            is_time_sig, temp_time_sig = self.is_time_sig(ch)
+            if is_time_sig:
+                # TODO: assumes that there is only one time signature change
+                num_events -= 1
+                # print time_sig
+                continue
+            is_key_change, temp_key = self.is_key_change(ch)
+            # print ch, is_key_change
+            # TODO: right now just ignoring bars with key change
+            if is_key_change:
+                return None, None
+
+            # TODO: maybe dur_unit should be proportion of bar not actual beat duration
+            num_beats = int(time_sig.split('/')[0])
+            dur_unit = num_beats // num_events
+
+            # TODO: right now ignoring the bars that don't divide up perfectly
+            if num_beats % num_events != 0:
+                # GLOBAL_COUNT_UNPARSABLE_SEQS += 1
+                return None, None
+
+            # assert num_beats % num_events == 0
+            if ch == '[0]':
+                ch = 'R'
+            if ch != '.':
+                ch = Chord(ch, beat_pos, dur_unit)
                 chords.append(ch)
             else:
-                for ch in bar:
+                chords[-1].add_dur(dur_unit)
+                # chords[-1].add_dur(1)
 
-    def make_chord_strs(self):
+            beat_pos += dur_unit
+        chords.pop(0)
+        return chords, time_sig
+
+    def expand_to_beats(self):
+        beats = []
+        beats_w_onsets = []
+        for ch in self._chords:
+            assert isinstance(ch.dur, int)
+            for i in range(ch.dur):
+                beats.append(ch.name)
+                if i == 0:
+                    beats_w_onsets.append((ch.name, 1))
+                else:
+                    beats_w_onsets.append((ch.name, 0))
+        return beats, beats_w_onsets
 
 
+class Chord(object):
+    def __init__(self, name, onset_beat_pos, dur):
+        self._name = name
+        self._onset_beat = onset_beat_pos
+        self._dur = dur
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def dur(self):
+        return self._dur
+
+    def add_dur(self, dur):
+        self._dur += dur
 
 
 class TDC_Song(object):
@@ -218,20 +325,81 @@ class TDC_Song(object):
         self._comments = comments
         self._key_sig = key_sig
         self._time_sig = time_sig
+        
+        self._rules = self.make_rules()
+        
+    def make_rules(self):
+        rules = OrderedDict()
+        for left, right in self._sections.iteritems():
+            rules[left] = Rule(left, right, rules, self._time_sig)
 
-    def get_section_str(self):
-        time_sig = self._time_sig
-        section_strs = {}
-        for key, bars in self._sections.iteritems():
-            section_str = ''
+        # need to check the order
+        keys = rules.keys()
+        print 'keys ordering:', keys
+        for i, label in enumerate(keys):
+            referenced_labels = rules[label].referenced_labels
+            all_in = True
+            for ref_label in referenced_labels:
+                if ref_label not in keys[:i+1]:
+                    all_in = False
+                    break
+            if not all_in:
+                # this puts this entry in the back of the dict
+                temp = rules[label]
+                del rules[label]
+                rules[label] = temp
+                print 'reordered keys:', rules.keys()
 
+        for rule in rules.values():
+            rule.expand()
+        return rules
 
+    def get_section_beats(self):
+        return [', '.join(rule.beats) + '\n' for label, rule in self._rules.iteritems() if len(label) >= 2]
+    
+    def get_section_beats_w_onsets(self):
+        return [rule.beats_w_onsets for label, rule in self._rules.iteritems() if len(label) >= 2]
+        
+
+def save_as_text(fpath, seqs):
+    seqs_strs = []
+    for seq in seqs:
+        seq_str = ', '.join(seq) + '\n'
+        seqs_strs.append(seq_str)
+    fpath = os.path.splitext(fpath)[0] + '.txt'
+    print 'save fname:', fpath
+    with open(fpath, 'w') as p:
+        p.writelines(seqs_strs)
 
 
 def main():
     fpaths = get_rock_corpus_fpaths()
-    song = parse_chords(fpaths[0])
-    song.get_section_str()
+    seqs = []
+    seqs_w_onsets = []
+    for fpath in fpaths:
+        print '--------------', fpath
+        song = parse_chords(fpath)
+        sections = song.get_section_beats()
+
+        print '--- sections ---'
+        for sec in sections:
+            print sec
+
+        seqs.extend(sections)
+        seqs_w_onsets.extend(song.get_section_beats_w_onsets())
+
+    print '# of segmented seqs:', len(seqs)
+    # fpath = os.path.join('data', 'rock-rns-phrases.txt')
+    fpath = os.path.join('data', 'rock-rns-phrases.txt')
+    with open(fpath, 'w') as p:
+        p.writelines(seqs)
+    fpath = os.path.join('data', 'rock-rns-phrases.pkl')
+    output = {'seqs': seqs, 'seqs_w_onsets': seqs_w_onsets}
+    with open(fpath, 'wb') as p:
+        pickle.dump(output, p)
+    print 'pickled fname:', fpath
+
+    # print 'GLOBAL_COUNT_UNPARSABLE_SEQS', GLOBAL_COUNT_UNPARSABLE_SEQS
 
 
 if __name__ == '__main__':
