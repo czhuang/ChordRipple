@@ -651,8 +651,9 @@ class Database(object):
 
         self.stack_ratings_scores()
         self.print_results()
-        self.format_rankings()
         self.collect_uses()
+
+        self.format_rankings()
 
         fpath = os.path.join('csv', 'ordering.csv')
         self.results.to_csv(fpath)
@@ -834,12 +835,18 @@ class Database(object):
         self.uses = {}
         error_count = 0
         error_indices = []
+        ripple_condition_use_count = 0
+        ripple_count = 0
+        user_ripple_counts = []
         for user_id in self.complete_entries_by_conditions_keys:
             entries = self.complete_entries_by_conditions[user_id]['Ripple']
             results = []
+            user_ripple_count = 0
+            user_use_count = 0
             for entry in entries:
                 if entry['actionKind'] == 'use' and entry['author'] == 'machine':
                     print '---- use ----'
+
                     res = {}
                     changed_indices = self.get_changed_indices(entry)
                     # diff = self.use_loglikelihood_diff(entry)
@@ -858,7 +865,12 @@ class Database(object):
                     # if side ripples, then skip
                     if len(changed_indices) == 2:
                         continue
+
+                    # TODO: temp hack for counting
+                    user_use_count += 1
+
                     if self.is_ripple(entry):
+                        user_ripple_count += 1
                         res['is_ripple'] = 1
                         assert len(changed_indices) == 3
                         sym = seq[changed_indices[1]]
@@ -869,6 +881,9 @@ class Database(object):
                     res['novelty'] = self.ngram.unigram_inverse_freq(sym)
                     if res['novelty'] is not None:
                         results.append(res)
+            ripple_count += user_ripple_count
+            ripple_condition_use_count += user_use_count
+            user_ripple_counts.append((user_ripple_count, user_use_count))
             self.uses[user_id] = results
 
         results = []
@@ -891,6 +906,16 @@ class Database(object):
         is_ripple = df['is_ripple']
         print '# of use, # of ripple use, percentage'
         print len(is_ripple), np.sum(is_ripple), np.sum(is_ripple) / float(len(is_ripple))
+        print 'hand_counted, # of use, # of ripple use, percentage'
+        print ripple_condition_use_count, ripple_count, ripple_count / float(ripple_condition_use_count)
+        print user_ripple_counts
+        props = []
+        for r, u in user_ripple_counts:
+            print '%.2f' % (int(r)/float(u)),
+            props.append(r/float(u))
+        print
+        print np.mean(props), np.std(props)
+        print np.mean(user_ripple_counts), np.std(user_ripple_counts)
 
         print df
         fpath = os.path.join('csv', 'uses.pkl')

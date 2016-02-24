@@ -173,7 +173,7 @@ def test_pilot_analysis(db_index):
     # db.collect_likelihood_versus_is_ripple()
     # db.collect_use_dependencies()
 
-    # db.print_complete_hits()
+    db.print_complete_hits()
 
 # def test_get_all_use():
 

@@ -158,6 +158,7 @@ class Rule(object):
         self._rules_ref = rules
         self._time_sig = time_sig
         self._referenced_labels = self.collect_referenced_labels()
+        self._dur_unit = self.get_smallest_dur()
 
     def expand(self):
         # TODO: hack, consider 'S' rule case too
@@ -168,6 +169,9 @@ class Rule(object):
             self._bars = self.expand_to_phrases()
             self._chords = self.expand_to_chords()
             self._beats, self._beats_w_onsets = self.expand_to_beats()
+
+    def get_smallest_unit(self):
+
 
     def collect_referenced_labels(self):
         labels = set()
