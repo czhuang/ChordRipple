@@ -6,7 +6,7 @@ import cPickle as pickle
 import numpy as np
 
 from NGram import NGram
-from retrieve_SkipGram_weights import retrieve_chord2vec_weights
+#from retrieve_SkipGram_weights import retrieve_chord2vec_weights
 
 from config import get_configs
 
@@ -42,6 +42,35 @@ def update_syms(configs, symbol_fname, syms):
         syms = [letter2rn[sym] for sym in syms]
 
     return rn2letter, letter2rn, syms
+
+# TODO: hack, copied from retrieve_SkipGram_weights to break dependency to legacy code
+def retrieve_chord2vec_weights(most_recent=False, return_fname=False):
+    # Chord2Vec embedding optimized with stochastic gradient descent (SGD)
+    fpath = os.path.join('models', 'rock-letter',
+                         'chord2vec')  #, 'best_models')
+    if most_recent:
+        fname = retrieve_most_recent_fname(fpath)
+    else:
+        fname = 'window-1_bigram-False_hiddenSize-20_crossEntropy-2.414_bestIter-79-maxEpoch-80_opt-SGD_l2reg-0.0100.pkl'
+
+    with open(os.path.join(fpath, fname), 'rb') as p:
+        results = pickle.load(p)
+
+    parser = results['parser']
+    print parser.idxs_and_shapes
+
+    W_vect = results['W']
+    syms = results['syms']
+    # this is the first layer weights
+    in_W = parser.get(W_vect, ('weights', 1))
+
+    print 'cross_entropy: %.4f' % results['cross_entropy']
+    print 'best iteration: %d' % results['iter']
+
+    if return_fname:
+        return in_W, syms, fname
+    else:
+        return in_W, syms
 
 
 def retrieve_NGram(return_pickle=False):
