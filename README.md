@@ -4,7 +4,7 @@ This web app is a search-box like interface for writing chord progressions.  Jus
 
 On a non-snowy day, you might be able to try it out at:
 	
-    http://chordripplestudy.iis-dev.seas.harvard.edu/
+    http://chordripplev3.iis-dev.seas.harvard.edu/
 
 Earlier version (allows any number of chords):
 
@@ -14,9 +14,15 @@ Earlier version (allows any number of chords):
 INSTALLATION
 ============
 
-For Mac:
+For Mac:  (TODO: reduce some of these dependencies.)
 
 	pip install numpy
+        pip install matplotlib
+        pip install sklearn
+        pip install scipy
+        pip install pandas
+        pip install elasticsearch
+        pip install jsonpickle
 	pip install music21
 	pip install flask
 	pip install gevent-socketio
